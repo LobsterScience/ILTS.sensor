@@ -14,6 +14,7 @@ data_directory <- file.path(main_directory,"data")
 
 folder_list <- list.files(path=data_directory)
 
+
 for (i in folder_list){
   
 folder <- i
@@ -25,7 +26,8 @@ for (j in file_list){
 
 filename <- j
 
-###### set number works for sets up to 3 digits (999)
+###### set number works for sets up to 3 digits (999), 
+###### if > 999 sets, add additional nested ifelse statement
 setno <- ifelse(stri_length(filename)==9,
                 substr(filename,5,5),
                 ifelse(stri_length(filename)==10,
@@ -55,8 +57,8 @@ netmind_long <- netmind %>%
   names_to = "TRANSDUCERNAME", values_to = "SENSORVALUE")
 
 
-######### if other possible TRANSDUCER names exist specify here with 
-######### additional ifelse statement
+######### if possible SENSORNAME values other than "Headline" and "DoorMaster" 
+######### exist specify here with additional ifelse statement
 netmind_long <- netmind_long %>%
   mutate(SENSORNAME = ifelse(TRANSDUCERNAME %in% "Primary","Headline",
                              ifelse(TRANSDUCERNAME %in% "DoorSpread",
