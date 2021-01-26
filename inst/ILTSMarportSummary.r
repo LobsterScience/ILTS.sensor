@@ -7,7 +7,7 @@ require(bio.lobster)
 require(ILTS.sensor)
 require(bio.utilities)
 require(devtools)
-load_all(file.path(code_root,"ILTS.sensor"))
+#load_all(file.path(code_root,"ILTS.sensor"))
 fpath = file.path(project.datadirectory('bio.lobster'),'data','survey')
 
 ##### choose year of marport data to be summarized here. Adjust file paths if folder structure has changed.:
