@@ -1,3 +1,7 @@
+#' This function converts survey tables recorded in netmind format to Esonar format 
+#' @param main_directory specifies path to main folder where netmind text tables are stored and where converted csv files will be outputed. Default ="R:/Science/Population Ecology Division/Shared/!PED_Unit17_Lobster/Lobster Unit/Data & Code Files/ILTS Data/netmind_to_esonar"). Directory must contain a folder called data containing the txt files and a folder called output.
+
+netmind2esonar <- function(main_directory = "R:/Science/Population Ecology Division/Shared/!PED_Unit17_Lobster/Lobster Unit/Data & Code Files/ILTS Data/netmind_to_esonar"){
 
 library(plyr)
 library(dplyr)
@@ -8,7 +12,6 @@ library(lubridate)
 
 ########## change main directory if applicable
 
-main_directory <- "R:/Science/Population Ecology Division/Shared/!PED_Unit17_Lobster/Lobster Unit/Data & Code Files/ILTS Data/netmind_to_esonar"
 output_directory <- file.path(main_directory,"output")
 data_directory <- file.path(main_directory,"data")
 
@@ -93,4 +96,4 @@ write.csv(netmind_long_arranged, file = paste0(output_directory,"/",writename,se
 } 
 
 
-
+}
