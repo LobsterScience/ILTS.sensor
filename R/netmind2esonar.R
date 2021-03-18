@@ -40,7 +40,7 @@ columnames <- c("Date","Time","Latitude","Longitude","Speed","Primary","DoorSpre
 netmind <- read.fwf(file.path(data_directory,folder,filename),
                     skip = 6, header = FALSE, 
                     widths = c(7,7,16,16,5,11,11), 
-                    col.names = columnames)
+                    col.names = columnames, colClasses = c("Time"="character"))
 
 netmind <- netmind %>% 
   mutate(Primary = as.numeric(gsub("\\*","", Primary))) %>%
