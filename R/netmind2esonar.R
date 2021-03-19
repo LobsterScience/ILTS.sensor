@@ -9,6 +9,7 @@ library(tibble)
 library(tidyr)
 library(stringi)
 library(lubridate)
+library(stringr)
 
 ########## change main directory if applicable
 
@@ -53,11 +54,26 @@ netmind$GPSDATE = as.Date(netmind$GPSDATE, format = "%Y%m%d")
 netmind$GPSTIME = factor(netmind$GPSTIME, ordered = TRUE)
 
 netmind$LATITUDE = trimws(netmind$LATITUDE, which = "both")
+netmind$LATITUDE = str_squish(netmind$LATITUDE)
 netmind$LONGITUDE = trimws(netmind$LONGITUDE, which = "both")
+netmind$LONGITUDE = str_squish(netmind$LONGITUDE)
+netmind$GPSTIME = trimws(netmind$GPSTIME, which = "both")
 
 netmind_long <- netmind %>% 
   pivot_longer(c(Primary,DoorSpread), 
   names_to = "TRANSDUCERNAME", values_to = "SENSORVALUE")
+
+## GMT to AST time (function will still work if this section is removed):
+#####################################################
+netmind_long <- netmind_long %>% mutate(date.time = paste(GPSDATE,GPSTIME))
+netmind_long$date.time = as_datetime(netmind_long$date.time)
+netmind_long <- netmind_long %>% mutate(date.time = date.time - 10800)
+netmind_long <- netmind_long %>% separate(date.time,c("Date","Time"), sep = " ")
+netmind_long <- netmind_long %>% mutate(GPSDATE = Date, GPSTIME = Time) %>%
+  select(-Date,-Time)
+netmind_long <- netmind_long %>% mutate(GPSTIME = gsub(":","",GPSTIME))
+netmind_long$GPSTIME = as.character(netmind_long$GPSTIME)
+####################################################
 
 
 ######### if possible SENSORNAME values other than "Headline" and "DoorMaster" 
