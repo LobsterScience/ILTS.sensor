@@ -1,3 +1,6 @@
+
+##### IN PROGRESS: script for converting 2021 marport data to esonar format, will eventually be a function.
+
 require(bio.lobster)
 require(bio.utilities)
 require(devtools)
@@ -34,22 +37,22 @@ for (j in 1:length(NMEA)){
     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$b[j]),as.character(gpst$d[j]), NA,NA,NA,NA)
     out.gpst = rbind(out.gpst, ooo)
   }
-  
+
   if(gpst$NMEA[j] == "$GPGLL"){
     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$e[j]),as.character(gpst$a[j]),as.character(gpst$c[j]), NA,NA,NA,NA)
     out.gpst = rbind(out.gpst, ooo)
   }
-  
+
   if(gpst$NMEA[j] == "$GPRMC"){
     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]), NA,NA,NA,NA)
     out.gpst = rbind(out.gpst, ooo)
   }
-  
+
   if(gpst$NMEA[j] == "$GPVTG"){
     ooo = cbind(gpst$Time[j],gpst$NMEA[j],NA,NA,NA,as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$g[j]) )
     out.gpst = rbind(out.gpst, ooo)
   }
-  
+
 }
 
 out.gpst = as.data.frame(out.gpst)
@@ -69,7 +72,7 @@ dat <- dat %>% rename(Track_made_good_deg_true = V6, Track_made_good_deg_magneti
 dat <- dat %>% mutate(GPSTIME1 = parse_time(as.character(GPSTIME), "%H%M%S"))
 dat <- dat %>% mutate(GPSDATE = as.Date(CPUDATEANDTIME))
 dat <- dat %>% mutate(GPSDATETIME = ifelse(GPSTIME1 %in% NA, NA, paste(GPSDATE,"",GPSTIME1)))
-dat <- dat %>% mutate(GPSTIME2 = as_datetime(ifelse(GPSDATETIME %in% NA, NA, as_datetime(GPSDATETIME) - 10800)))                      
+dat <- dat %>% mutate(GPSTIME2 = as_datetime(ifelse(GPSDATETIME %in% NA, NA, as_datetime(GPSDATETIME) - 10800)))
 dat <- dat %>% separate(GPSTIME2, c(NA,"GPSTIME3"), sep= " ")
 dat <- dat %>% mutate(GPSTIME = gsub(":","",GPSTIME3))
 dat <- dat %>% select(-GPSTIME1,-GPSDATETIME,-GPSTIME3)
