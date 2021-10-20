@@ -98,3 +98,15 @@ dat <- dat %>% mutate(lat1 = paste(str_sub(lat1, 1,2)," ",str_sub(lat1, 3,-1)," 
 dat <- dat %>% mutate(long1 = paste(str_sub(long1, 1,3)," ",str_sub(long1, 4,-1)," W"))
 dat <- dat %>% rename(lat_filled = lat1, long_filled = long1)
 
+
+##### check if column names need correcting (make this option when making function)
+#correct.col.names=T
+#correct.col.names=F
+
+if(year(dat$CPUDATEANDTIME[1])=='2021' & month(dat$CPUDATEANDTIME[1]) =='6'){correct.col.names=T}
+
+if(correct.col.names==T){
+  dat <- dat%>% select(-SNR,-Status, -`Noise Floor`)
+  dat <- dat %>% rename(SNR=Value, Status=`Type of Data`, Value= `Sensor Protocol`, `Type of Data`=`Sensor Location`, `Sensor Location`=Receiver, `Noise Floor`=Quality )
+}
+
