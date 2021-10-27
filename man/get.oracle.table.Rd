@@ -2,13 +2,14 @@
 % Please edit documentation in R/ilts.operations.R
 \name{get.oracle.table}
 \alias{get.oracle.table}
-\title{get.acoustic.releases}
+\title{get.oracle.table}
 \usage{
 get.oracle.table(
   tn = "",
   server = pkg.env$oracle.server,
   user = pkg.env$oracle.user,
-  password = pkg.env$oracle.password
+  password = pkg.env$oracle.password,
+  RODBC = F
 )
 }
 \arguments{

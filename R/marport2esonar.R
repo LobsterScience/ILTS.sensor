@@ -2,7 +2,7 @@
 #' @param fpath is the path to where marport text data files are stored
 #' @param year specifies the marport survey year for which R tables will be converted
 #' @author Geraint Element
-#' 
+#' @export
 
 marport2esonar <- function(fpath = file.path("C:","bio.data",'bio.lobster','data','survey'), year= year) {
 
@@ -37,7 +37,7 @@ gps$X = paste(gps$Xa," ",gps$Xb)
 gps <- gps %>% group_by(CPUDATEANDTIME) %>% mutate(
   keepall = ifelse(all(Speed %in% NA) & all(Heading %in% NA), "yes","no")
 ) %>% ungroup()
-  
+
 gps <- gps %>% group_by(CPUDATEANDTIME) %>% mutate(
   keep = ifelse((keepall %in% "no" & Speed %in% NA & Heading %in% NA),
   "no", "yes")) %>% ungroup()
