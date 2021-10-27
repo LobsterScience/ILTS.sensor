@@ -18,7 +18,7 @@ require(tidyverse) || stop("install tidyverse")
 
 
 #### Read in file, separate columns and clean up headers
-file_list <- list.files(path=data_directory)
+file_list <- list.files(path=data_directory, pattern = "^[2]")
 
 for (i in file_list){
 
