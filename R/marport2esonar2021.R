@@ -4,7 +4,7 @@
 #' @param correct.col.names June-July 2021 Marport data had incorrect column headers, if this problem is not resolved in later outputs, use correct.col.names=T (function will override to T if June-July 2021 data is being run)
 #' @param heading chooses whether to use "true" or "magnetic" heading. Default = "magnetic"
 #' @author Geraint Element
-
+#' @export
 
 marport2esonar2021 <- function(data_directory = file.path(bio.datadirectory,'bio.lobster','data','survey','Marport 2021'),
                                output_directory = file.path(data_directory,'Marport converted'),
