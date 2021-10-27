@@ -1,4 +1,5 @@
-#'Function for converting 2021 marport data to esonar format.
+#' @title marport2esonar2021
+#' @Description for converting 2021 marport data to esonar format.
 #' @param data_directory is file path to where unconverted Marport files are stored.
 #' @param output_directory is file path to create directory where converted data will be stored.
 #' @param correct.col.names June-July 2021 Marport data had incorrect column headers, if this problem is not resolved in later outputs, use correct.col.names=T (function will override to T if June-July 2021 data is being run)
