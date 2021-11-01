@@ -113,8 +113,8 @@ for (i in file_list){
   }
 
   #### format lat and long columns
-  dat <- dat %>% mutate(lat1 = paste(str_sub(lat1, 1,2)," ",str_sub(lat1, 3,-1)," N"))
-  dat <- dat %>% mutate(long1 = paste(str_sub(long1, 1,3)," ",str_sub(long1, 4,-1)," W"))
+  dat <- dat %>% mutate(lat1 = ifelse(lat1 %in% NA, NA, paste0(str_sub(lat1, 1,2)," ",str_sub(lat1, 3,-1)," N")))
+  dat <- dat %>% mutate(long1 = ifelse(long1 %in% NA, NA, paste0(str_sub(long1, 1,3)," ",str_sub(long1, 4,-1)," W")))
   dat <- dat %>% rename(lat_filled = lat1, long_filled = long1)
 
   #### Fill down GPSTIME, SPEED and HEADING values
@@ -177,7 +177,7 @@ for (i in file_list){
 
   #### create TRANSDUCERNAME values
   dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(`Sensor Location` %in% "10", "HEADLINE",
-                                                ifelse(`Sensor Location`%in% "23" | `Sensor Location`%in% "26", "WINGSPREAD",
+                                                ifelse(`Sensor Location` %in% c("12","23","26"), "WINGSPREAD",
                                                        ifelse(`Sensor Location` %in% "171", "HYDROPHONE",
                                                               ifelse(`Sensor Location` %in% "8","GRID",`Sensor Location`)))))
 
@@ -216,6 +216,9 @@ for (i in file_list){
                "DDLON",
                "SOURCE")]
 
+  ###### change NAs to white space
+  dat <- sapply(dat, as.character)
+  dat[is.na(dat)] <- ""
 
 
   dir.create(output_directory, recursive = TRUE, showWarnings = FALSE )

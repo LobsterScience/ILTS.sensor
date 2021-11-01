@@ -6,10 +6,10 @@
 
 marport2esonar <- function(fpath = file.path("C:","bio.data",'bio.lobster','data','survey'), year= year) {
 
-library(plyr)
-library(dplyr)
-library(stringi)
-library(lubridate)
+#library(plyr)
+require(dplyr) || stop("Install dplyr")
+require(stringi) || stop("Install stringi")
+require(lubridate) || stop("Install lubridate")
 
 ########## change year or directories if applicable
 
@@ -28,8 +28,8 @@ gps$Yb = substr(gps$Y, 3, nchar(gps$Y))
 gps$Xa = substr(gps$X,1,3)
 gps$Xb = substr(gps$X, 4, nchar(gps$X))
 
-gps$Y = paste(gps$Ya," ",gps$Yb)
-gps$X = paste(gps$Xa," ",gps$Xb)
+gps$Y = paste0(gps$Ya," ",gps$Yb)
+gps$X = paste0(gps$Xa," ",gps$Xb)
 
 
 ## drop GPGGA rows unless no GPRMC data exists for that second
