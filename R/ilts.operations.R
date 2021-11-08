@@ -1,21 +1,12 @@
+## NOTE: install dependancies (see Readme)
+
+library(devtools)
 
 pkg.env = new.env(parent = emptyenv())
 assign('manual.archive', "", pkg.env)
-assign('oracle.server', "", pkg.env)
-assign('oracle.user', "", pkg.env)
-assign('oracle.password', "", pkg.env)
-options(stringsAsFactors = F)
-
-#' @title rename.df
-#' @description renaming columns
-#' @export
-rename.df = function(x, n0, n1) {
-  if(!length(n0)== length(n1)) stop('length of names and renames need to be the same length')
-  for(i in 1:length(n0)){
-    names(x)[which(names(x)==n0[i])] = n1[i]
-  }
-  return(x)
-}
+assign('oracle.server', oracle.personal.server, pkg.env)
+assign('oracle.user', oracle.personal.user, pkg.env)
+assign('oracle.password', oracle.personal.password, pkg.env)
 
 #' @title  init.project.vars
 #' @description  Set global database variables by user account
@@ -24,13 +15,12 @@ rename.df = function(x, n0, n1) {
 init.project.vars = function() {
   if(exists("bio.datadirectory.ilts")){
     assign('manual.archive', bio.datadirectory.ilts , pkg.env)
-      }
-  if(!exists("bio.datadirectory.ilts")){
-    print('A window will open that you need to choose the working folder.')
+  }
+  else{
     assign('manual.archive', gWidgets2::gfile(text = "Select project work directory", type = "selectdir"), pkg.env)
-    }
-  dir.create(pkg.env$manual.archive, showWarnings = F)
-  
+
+  }
+
   #Take from snowcrab users .Rprofile.site
   if(exists("oracle.snowcrab.server")){
     assign('oracle.server', oracle.snowcrab.server, pkg.env)
@@ -38,10 +28,10 @@ init.project.vars = function() {
     assign('oracle.password', oracle.snowcrab.password, pkg.env)
   }
   #Take from lobster users .Rprofile.site, CHANGE TO WHAT IT IS ACTUALLY CALLED
-  if(exists("oracle.lobster.server")){
-    assign('oracle.server', oracle.lobster.server, pkg.env)
-    assign('oracle.user', oracle.lobster.user, pkg.env)
-    assign('oracle.password', oracle.lobster.password, pkg.env)
+  if(exists("oracle.personal.server")){
+    assign('oracle.server', oracle.personal.server, pkg.env)
+    assign('oracle.user', oracle.personal.user, pkg.env)
+    assign('oracle.password', oracle.personal.password, pkg.env)
   }
   #If still not set prompt for values
   if(pkg.env$oracle.server == ""){
@@ -60,9 +50,8 @@ init.project.vars = function() {
 #' @return dataframe
 #' @export
 esonar2df = function(esonar = NULL) {
-
-  esonar = rename.df(esonar, c( 'CPUDATEANDTIME','GPSTIME','LATITUDE','LONGITUDE','SPEED','HEADING','VALIDITY','TRANSDUCERNAME','SENSORNAME','SENSORVALUE','ERRORCODE','HYDROPHONE','SIGNALSTRENGTH','SET_NO','LATEDIT','TRIP_ID','GPSDATE','timestamp'),
-   c("CPUDateTime","GPSTime","Latitude","Longitude","Speed","Heading","Validity","TransducerName","SensorName","SensorValue","ErrorCode","Hydrophone","SignalStrength", "setno", "latedit", "trip", "GPSDate","datetime"))
+  names(esonar)
+  #colnames(esonar) = c("CPUDateTime","GPSDate","GPSTime","Latitude","Longitude","Speed","Heading","Validity","TransducerName","SensorName","SensorValue","ErrorCode","Hydrophone","SignalStrength", "setno", "latedit", "trip", "datetime")
 
   esonar$primary = NA  #Headline
   esonar$secondary = NA #Is nothing but may need in file
@@ -79,43 +68,42 @@ esonar2df = function(esonar = NULL) {
   esonar$STBDRoll[which(esonar$SensorName == "STBDRoll")] = esonar$SensorValue[which(esonar$SensorName == "STBDRoll")]
   esonar$STBDPitch[which(esonar$SensorName == "STBDPitch")] = esonar$SensorValue[which(esonar$SensorName == "STBDPitch")]
 
-  esonar$CPUDateTime = NULL
-  esonar$TransducerName = NULL
-  esonar$SensorName = NULL
-  esonar$SensorValue = NULL
-  esonar$Hydrophone = NULL
-  esonar$SignalStrength = NULL
-  esonar$Validity = NULL
-  esonar$ErrorCode = NULL
-  esonar$Heading = NULL
- esonar = rename.df(esonar, c('GPSTime','Latitude','Longitude','Speed','setno','latedit','trip','GPSDate','datetime','primary','secondary','wingspread','STBDRoll','STBDPitch'),
-                            c("Time","Latitude","Longitude","Speed", "Setno", "latedit","Trip","Date","timestamp", "Primary","Secondary","WingSpread","Roll", "Pitch"))
+  esonar$CPUDATETIME = NULL
+  esonar$TRANSDUCERNAME = NULL
+  esonar$SENSORNAME = NULL
+  esonar$SENSORVALUE = NULL
+  esonar$HYDROPHONE = NULL
+  esonar$SIGNALSTRENGTH = NULL
+  esonar$VALIDITY = NULL
+  esonar$ERRORCODE = NULL
+  esonar$HEADING = NULL
+
+
+  esonar <- esonar %>% select(GPSDATE,GPSTIME,LATITUDE,LONGITUDE,SPEED,SET_NO,DDLAT,TRIP_ID,timestamp,primary,secondary,wingspread,STBDRoll,STBDPitch)
+  #####NOTE: DDLAT is probably the wrong column but didn't know what "latedit" was supposed to be so used DDLAT to fill that space, but doesn't seem to affect running of function - Geraint E.
+
+  colnames(esonar) = c("Date","Time","Latitude","Longitude","Speed", "Setno", "latedit","Trip","timestamp", "Primary","Secondary","WingSpread","Roll", "Pitch")
 
   return(esonar)
 }
 
-#' @title  get.oracle.table
+#' @title  get.acoustic.releases
 #' @description  Get data from Oracle Database table
-#' @import ROracle DBI RODBC
+#' @import ROracle DBI
 #' @param tn tablename to get
 #' @param oracle.user your oracle username
 #' @param oracle.password your oracle password
 #' @return dataframe
 #' @export
-get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.env$oracle.user, password = pkg.env$oracle.password, RODBC=F){
+get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.env$oracle.user, password = pkg.env$oracle.password){
   if(tn == "")stop("You must provide a tablename to 'get.oracle.table'!!")
-if(!RODBC){
-  drv <- dbDriver("Oracle")
+
+
+  drv <- ROracle::Oracle()
   con <- ROracle::dbConnect(drv, username = user, password = password, dbname = server)
   res <- ROracle::dbSendQuery(con, paste("select * from ", tn, sep=""))
-  res <- fetch(res)
+  res <- ROracle::fetch(res)
   ROracle::dbDisconnect(con)
-} 
-if(RODBC)  {
-  drv = odbcConnect(dsn = server ,uid = user, pwd = password)
-  res = sqlQuery(drv,paste("select * from ", tn,";", sep=""))
-  odbcCloseAll()
-  }
   return(res)
 }
 
@@ -128,10 +116,9 @@ if(RODBC)  {
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, use_local=F, depth.plot=F,temperature.plot=F, sensor.file='ILTS_SENSORS_TEMP.csv', minilog.file = 'MINILOG_TEMP.csv', seabird.file = 'ILTS_TEMPERATURE.csv'){
+ilts.format.merge = function(update = TRUE, user = "", years = ""){
   #Set up database server, user and password
   init.project.vars()
-  options(stringsAsFactors=F)
 
   cont=TRUE
   if(user == "")stop("You must call this function with a user. exa. ilts.format.merge(update = TRUE, user = 'John'" )
@@ -155,27 +142,25 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, 
   plotdata = F #Alternative plotting that we do not require
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  dir.create(file.path(pkg.env$manual.archive,'raw'), showWarnings = F)
-  
-  if(!use_local) {  esona = get.oracle.table(tn = "FRAILC.ILTS_SENSORS_TEMP", RODBC=use_RODBC)
-                    write.csv(esona,file=file.path(pkg.env$manual.archive, 'raw', 'ILTS_SENSORS_TEMP.csv'),row.names = F)
-                  }      
-  if(use_local)    esona = read.csv(file.path(pkg.env$manual.archive, 'raw', sensor.file))
-  
+  esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
-  esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
-  esona$GPSTIME[which(nchar(esona$GPSTIME)==4)] = paste("00", esona$GPSTIME[which(nchar(esona$GPSTIME)==4)], sep="")
-  esona$GPSTIME[which(nchar(esona$GPSTIME)==3)] = paste("000", esona$GPSTIME[which(nchar(esona$GPSTIME)==3)], sep="")
-  esona$GPSTIME[which(nchar(esona$GPSTIME)==2)] = paste("0000", esona$GPSTIME[which(nchar(esona$GPSTIME)==2)], sep="")
-  esona$GPSTIME[which(nchar(esona$GPSTIME)==1)] = paste("00000", esona$GPSTIME[which(nchar(esona$GPSTIME)==1)], sep="")
-  
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
-   err = which(is.na(esona$timestamp))
-  if(length(err)>0){
-    cat(paste('Errors in time stamps for TRIP_NO--SETS'),unique(paste(esona$TRIP_ID[err],'--',esona$SET_NO[err],sep="")))
-     esona = esona[-err,]
-    }
+  err = which(is.na(esona$timestamp))
+  if(length(err)>0)esona = esona[-err,]
+
+  ##### Addition to solve LATITUDE data logging issues - Geraint E.
+  library(tidyr)
+  library(dplyr)
+  esona = esona %>% mutate(LATITUDE = ifelse(substr(LATITUDE,5,5) %in% " ", paste0(substr(LATITUDE,1,4),substr(LATITUDE,6,nchar(LATITUDE))),
+                                             ifelse(substr(LATITUDE,6,6) %in% " ", paste0(substr(LATITUDE,1,5),substr(LATITUDE,7,nchar(LATITUDE))),LATITUDE)))
+  esona <- esona %>% mutate(LATITUDE = gsub("n","N",LATITUDE)) %>% mutate(LATITUDE = gsub("F","N",LATITUDE))
+  esona = separate(esona, LATITUDE, c("a","b","c"), " ", remove = FALSE)
+  esona <- esona %>% filter(!(b %in% ""))
+  #test4 = esona %>% filter(!(c %in% "N"))
+  esona <- esona %>% select(-a,-b,-c)
+
+  #####
   esona$LATITUDE = format.lol(x = esona$LATITUDE)
   esona$LONGITUDE = format.lol(x = esona$LONGITUDE)
   #If specific years desired filter unwanted
@@ -185,34 +170,20 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, 
     if(length(yind)>0)esona = esona[yind,]
     if(length(esona$timestamp)==0)stop("No data found for your year selection!")
   }
-  #if(!use_local)  {
-  #    mini = get.oracle.table(tn = "FRAILC.MINILOG_TEMP", RODBC = use_RODBC)
-  #    write.csv(mini,file=file.path(pkg.env$manual.archive, 'raw', 'MINILOG_TEMP.csv'),row.names = F)
-  #  } 
-  #if(use_local)    mini = read.csv(file.path(pkg.env$manual.archive, 'raw', minilog.file))
-  
-  #rebuild datetime column as it is incorrect and order
-  #mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
-  #mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
+  # mini = get.oracle.table(tn = "FRAILC.MINILOG_TEMP")
+  # #rebuild datetime column as it is incorrect and order
+  # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
+  # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
   #seab = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-  if(!use_local)    {
-    seabf = get.oracle.table(tn = "frailc.ILTS_TEMPERATURE",RODBC = use_RODBC)
-    write.csv(seabf,file=file.path(pkg.env$manual.archive, 'raw', 'ILTS_TEMPERATURE.csv'),row.names = F)
-    }
-  if(use_local)    seabf = read.csv(file.path(pkg.env$manual.archive, 'raw', seabird.file))
+
+  seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
   #rebuild datetime column as it is incorrect and order
-  seabf$UTCTIME[which(nchar(seabf$UTCTIME)==5)] = paste("0", seabf$UTCTIME[which(nchar(seabf$UTCTIME)==5)], sep="")
-  seabf$UTCTIME[which(nchar(seabf$UTCTIME)==4)] = paste("00", seabf$UTCTIME[which(nchar(seabf$UTCTIME)==4)], sep="")
-  seabf$UTCTIME[which(nchar(seabf$UTCTIME)==3)] = paste("000", seabf$UTCTIME[which(nchar(seabf$UTCTIME)==3)], sep="")
-  seabf$UTCTIME[which(nchar(seabf$UTCTIME)==2)] = paste("0000", seabf$UTCTIME[which(nchar(seabf$UTCTIME)==2)], sep="")
-  seabf$UTCTIME[which(nchar(seabf$UTCTIME)==1)] = paste("00000", seabf$UTCTIME[which(nchar(seabf$UTCTIME)==1)], sep="")
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
+
   #Loop through each esonar file to convert and merge with temp
   eson = split(esona, esona$TRIP_ID)
-  seabf$id = paste(seabf$TRIP_ID,seabf$SET_NO,sep="_")
-  
   for(i in 1:length(eson)){
     if(cont){ #Condition fails if program exited
       trip = data.frame(eson[[i]])
@@ -221,72 +192,56 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, 
         if(cont){ #Condition fails if program exited
           set = data.frame(trip[[j]])
           set = esonar2df(set)
-          set$id = paste(set$Trip, set$Setno, sep="_")
-          sseab = subset(seabf, id == na.omit(unique(set$id))) 
-          sseab = sseab[order(sseab$timestamp),]
+
           #Dont continue if update is false and station is already complete
 
           if((paste(unique(na.omit(set$Setno)), unique(na.omit(set$Trip)), sep = ".") %in% paste(current$station, current$trip, sep = ".")) & (update==FALSE)){
             message(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Already added call with update = TRUE to redo.", sep = ""))
           } else{
-             seabsub = NULL
+            # minisub = NULL
+            # mini.ind.0 = which(mini$timestamp>set$timestamp[1])[1]
+            # mini.ind.1 = which(mini$timestamp>set$timestamp[length(set$timestamp)])[1]-1
+            # if(!(is.na(mini.ind.0) | is.na(mini.ind.0))){
+            #   minisub = mini[c(mini.ind.0:mini.ind.1),]
+            #   #### Only keep relevant data, If you encounter a minilog file
+            #   #    depth, add that column to the following line to catch that case
+            #   if("depth" %in% names(minisub)){
+            #     minisub = minisub[,which(names(minisub) %in% c("datetime", "TEMP_C", "depth"))]
+            #     names(minisub) = c("temperature","depth","timestamp")
+            #   }
+            #   else{
+            #     minisub = minisub[,which(names(minisub) %in% c("datetime", "TEMP_C"))]
+            #     names(minisub) = c("temperature","timestamp")
+            #   }
+            # }
+
+            seabsub = NULL
             #Get seabird indicies and extend ?? mins on either side so that depth profile isn't cut off
-            #seab.ind.0 = which(seabf$timestamp>set$timestamp[1]-lubridate::minutes(15))[1]
-            #seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
-            #if(is.na(seab.ind.1)) seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(4))[1]-1
-            
-            #   if(!(is.na(seab.ind.0) | is.na(seab.ind.0))){
-            #   seabsub = seabf[c(seab.ind.0:seab.ind.1),]
-            seabsub = sseab
-               seabsub = seabsub[,which(names(seabsub) %in% c("timestamp", "TEMPC", "DEPTHM"))]
+            seab.ind.0 = which(seabf$timestamp>set$timestamp[1]-lubridate::minutes(15))[1]
+            seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
+
+            if(!(is.na(seab.ind.0) | is.na(seab.ind.0))){
+
+              seabsub = seabf[c(seab.ind.0:seab.ind.1),]
+              seabsub = seabsub[,which(names(seabsub) %in% c("timestamp", "TEMPC", "DEPTHM"))]
               names(seabsub) = c("temperature","depth","timestamp")
-            #  }
-            if(is.null(seabsub)){
-              print(paste("No temperature/depth file found for trip - set:  ", unique(na.omit(set$Trip)), " - ", unique(na.omit(set$Setno)), sep=""))
-              next()
             }
-            #if(is.null(seabsub)) seabsub = minisub
+
+            if(is.null(seabsub) && is.null(minisub))stop(paste("No temperature/depth file found for trip - set:  ", unique(na.omit(set$Trip)), " - ", unique(na.omit(set$Setno)), sep=""))
+        #    if(is.null(seabsub)) seabsub = minisub
             #Remove depths = <0 #Not sure why but came accross stations with low depth values mixed in with real bottom depths.
             seabsub$depth[which(seabsub$depth <= 2)] = NA
-            mergset = NULL
+
             #Merge sensor data.
             mergset = merge(seabsub, set, "timestamp", all = TRUE)
             #Build the full, unbroken timeseries and merge
-             timestamp = data.frame(seq(min(mergset$timestamp), max(mergset$timestamp), 1))
+            timestamp = data.frame(seq(min(mergset$timestamp), max(mergset$timestamp), 1))
             names(timestamp) = c("timestamp")
             mergset = merge(mergset, timestamp, "timestamp", all = TRUE)
             mergset$timestamp = lubridate::ymd_hms(as.character(mergset$timestamp), tz="UTC" )
             #Find deepest point and extend possible data from that out to 20min on either side
-            
-            NoT = all(is.na(mergset$temperature))
-            if(NoT) {
-              cat("\n",paste('No temperature info for Trip-Setno='),unique(paste(mergset$Trip,mergset$Setno,sep="-")))
-            }
-            if(!NoT){
-              if(temperature.plot){
-                pdf(file.path(pkg.env$manual.archive, paste(unique(na.omit(mergset$Trip)), unique(na.omit(mergset$Setno)), 'Temperature.pdf',sep=".")))
-                with(subset(mergset, !is.na(temperature)),plot(timestamp,temperature, type='l'))
-                dev.off()
-              }
-            }
-            
-             NoDeps = all(is.na(mergset$depth))
-            if(NoDeps) {
-              cat("\n",paste('No depth info for Trip-Setno='),unique(paste(mergset$Trip,mergset$Setno,sep="-")))
-              write.csv(mergset,file=file.path(pkg.env$manual.archive, paste(unique(na.omit(mergset$Trip)), unique(na.omit(mergset$Setno)), 'csv',sep=".")))
-      
-              }
-            if(!NoDeps){
-             aredown = mergset$timestamp[which(mergset$depth == max(mergset$depth, na.rm = T))]
+            aredown = mergset$timestamp[which(mergset$depth == max(mergset$depth, na.rm = T))]
             time.gate =  list( t0=as.POSIXct(aredown)-lubridate::dminutes(20), t1=as.POSIXct(aredown)+lubridate::dminutes(20) )
-
-            if(depth.plot){
-              pdf(file.path(pkg.env$manual.archive, paste(unique(na.omit(mergset$Trip)), unique(na.omit(mergset$Setno)), 'pdf',sep=".")))
-              with(subset(mergset, !is.na(depth)),plot(timestamp,depth, type='l'))
-              dev.off()
-              write.csv(mergset,file=file.path(pkg.env$manual.archive, paste(unique(na.omit(mergset$Trip)), unique(na.omit(mergset$Setno)), 'csv',sep=".")))
-              next()
-            }
 
             # Build the variables need for the proper execution of the bottom contact function from
             # the netmensuration package
@@ -340,9 +295,11 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, 
             mergset$doorspread = mergset$wingspread
 
             #Try to recover from user termination in order to write the current stat list to file
+
             tryCatch(
               {
                # print(mergset$depth)
+               browser()
                 bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
 
                 if ( is.null(bc) || ( !is.null(bc$res)  && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
@@ -350,16 +307,26 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, 
                   bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
                 }
                 if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
-                  M$depth = jitter( M$depth, amount = bcp$eps.depth/10 )
-                  bcp$noisefilter.inla.h = 0.1
+                  mergset$depth = jitter( mergset$depth, amount = bcp$eps.depth/10 )
+                  bcp$noisefilter.inlah.h = 0.1
                   bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
                 }
                 if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
-                  M$depth = jitter( M$depth, amount = bcp$eps.depth/10 )
+                  mergset$depth = jitter( mergset$depth, amount = bcp$eps.depth/10 )
                   bcp$noisefilter.inla.h = 0.25
                   bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
-
                 }
+                if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
+                for(i in 1:5){
+                  if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
+                  eps.depth.backup = bcp$eps.depth
+                  bcp$eps.depth = bcp$eps.depth - 0.01
+                  bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
+                  }
+                 }
+                }
+                eps.depth.final = bcp$eps.depth
+                bcp$eps.depth = eps.depth.backup
                 message(paste("Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
 
               },
@@ -372,12 +339,10 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, 
 
 
             if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
-              warning(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Touchdown metrics could not be calculated.", sep = ""))
-
+              warning(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Touchdown metrics could not be calculated. Possible reason: tow may be too shallow, resulting in too little variation in depth values; check that sd(mergset$depth) > bcp$eps.depth, currently function tries reducing eps.depth as low as ",eps.depth.final," before quitting", sep = ""), immediate. = TRUE)
             }
 
             iltsStats[[paste(unique(na.omit(set$Trip)), unique(na.omit(set$Setno)),sep=".")]] = bc
-           } #end if no depth
           }#END Update clause
         }
       }#END Set subset
@@ -398,7 +363,6 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", use_RODBC=F, 
 #' @export
 format.lol = function(x = NULL){
   if(is.null(x))stop("You must specify values: x")
-
   x = as.character(x)
   x = matrix(unlist(strsplit(x, " ")), ncol = 3, byrow = T)
   rx = as.numeric(x[,1]) + (as.numeric(x[,2])/60)
@@ -407,3 +371,8 @@ format.lol = function(x = NULL){
   }
   return(rx)
 }
+
+#####Execute
+
+ilts.format.merge(update = FALSE, user = "geraint", years = "2020" )
+
