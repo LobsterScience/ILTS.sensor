@@ -22,7 +22,7 @@ marport2esonar2021(
 \item{heading}{chooses whether to use "true" or "magnetic" heading. Default = "magnetic"}
 }
 \description{
-marport2esonar2021
+for converting 2021 marport data to esonar format.
 }
 \author{
 Geraint Element

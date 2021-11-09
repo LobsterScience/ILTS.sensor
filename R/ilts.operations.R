@@ -1,18 +1,23 @@
 ## NOTE: install dependancies (see Readme)
 
-library(devtools)
 
-pkg.env = new.env(parent = emptyenv())
-assign('manual.archive', "", pkg.env)
-assign('oracle.server', oracle.personal.server, pkg.env)
-assign('oracle.user', oracle.personal.user, pkg.env)
-assign('oracle.password', oracle.personal.password, pkg.env)
+#assign('manual.archive', "", pkg.env)
+# assign('oracle.server', oracle.personal.server, pkg.env)
+# assign('oracle.user', oracle.personal.user, pkg.env)
+# assign('oracle.password', oracle.personal.password, pkg.env)
+
 
 #' @title  init.project.vars
 #' @description  Set global database variables by user account
 #' @import tcltk gWidgets2 gWidgets2tcltk
 #' @export
+
 init.project.vars = function() {
+
+  require(devtools) || stop("install devtools")
+
+  pkg.env = new.env(parent = emptyenv())
+
   if(exists("bio.datadirectory.ilts")){
     assign('manual.archive', bio.datadirectory.ilts , pkg.env)
   }
@@ -41,6 +46,8 @@ init.project.vars = function() {
     assign('oracle.password',  gWidgets2::ginput("Enter your Oracle passsword:"), pkg.env)
 
   }
+
+  pkg.env <<- pkg.env
 }
 
 #' @title  esonar2df
@@ -316,17 +323,18 @@ ilts.format.merge = function(update = TRUE, user = "", years = ""){
                   bcp$noisefilter.inla.h = 0.25
                   bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
                 }
+                eps.depth.backup = NULL
                 if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
-                for(i in 1:5){
-                  if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
                   eps.depth.backup = bcp$eps.depth
+                  for(i in 1:5){
+                  if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
                   bcp$eps.depth = bcp$eps.depth - 0.01
                   bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
                   }
                  }
                 }
                 eps.depth.final = bcp$eps.depth
-                bcp$eps.depth = eps.depth.backup
+                if(!is.null(eps.depth.backup)){bcp$eps.depth = eps.depth.backup}
                 message(paste("Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
 
               },
@@ -374,5 +382,5 @@ format.lol = function(x = NULL){
 
 #####Execute
 
-ilts.format.merge(update = FALSE, user = "geraint", years = "2020" )
+#ilts.format.merge(update = FALSE, user = "geraint", years = "2020" )
 

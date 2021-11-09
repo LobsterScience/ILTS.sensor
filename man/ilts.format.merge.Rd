@@ -4,18 +4,7 @@
 \alias{ilts.format.merge}
 \title{ilts.format.merge}
 \usage{
-ilts.format.merge(
-  update = TRUE,
-  user = "",
-  years = "",
-  use_RODBC = F,
-  use_local = F,
-  depth.plot = F,
-  temperature.plot = F,
-  sensor.file = "ILTS_SENSORS_TEMP.csv",
-  minilog.file = "MINILOG_TEMP.csv",
-  seabird.file = "ILTS_TEMPERATURE.csv"
-)
+ilts.format.merge(update = TRUE, user = "", years = "")
 }
 \arguments{
 \item{update}{TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed stations.}
