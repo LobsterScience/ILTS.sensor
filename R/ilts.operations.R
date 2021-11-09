@@ -306,7 +306,6 @@ ilts.format.merge = function(update = TRUE, user = "", years = ""){
             tryCatch(
               {
                # print(mergset$depth)
-               browser()
                 bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
 
                 if ( is.null(bc) || ( !is.null(bc$res)  && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
