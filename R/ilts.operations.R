@@ -123,7 +123,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-ilts.format.merge = function(update = TRUE, user = "", years = ""){
+ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NULL){
   #Set up database server, user and password
   init.project.vars()
 
@@ -189,6 +189,10 @@ ilts.format.merge = function(update = TRUE, user = "", years = ""){
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
 
+  ## remove tows selected by user
+  esona <- esona %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
+  esona <- esona %>% filter(!(tow %in% skiptows))
+
   #Loop through each esonar file to convert and merge with temp
   eson = split(esona, esona$TRIP_ID)
   for(i in 1:length(eson)){
@@ -204,7 +208,7 @@ ilts.format.merge = function(update = TRUE, user = "", years = ""){
 
           if((paste(unique(na.omit(set$Setno)), unique(na.omit(set$Trip)), sep = ".") %in% paste(current$station, current$trip, sep = ".")) & (update==FALSE)){
             message(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Already added call with update = TRUE to redo.", sep = ""))
-          } else{
+          }else{
             # minisub = NULL
             # mini.ind.0 = which(mini$timestamp>set$timestamp[1])[1]
             # mini.ind.1 = which(mini$timestamp>set$timestamp[length(set$timestamp)])[1]-1
@@ -263,7 +267,7 @@ ilts.format.merge = function(update = TRUE, user = "", years = ""){
               datasource="lobster",
               nr=nrow(mergset),
               tdif.min=2,
-              tdif.max=25,
+              tdif.max=32, #set based on longest tow encountered to date
               time.gate=time.gate,
               depth.min=3,
               depth.range=c(-20,30),
@@ -304,8 +308,9 @@ ilts.format.merge = function(update = TRUE, user = "", years = ""){
             #Try to recover from user termination in order to write the current stat list to file
 
             tryCatch(
-              {
                # print(mergset$depth)
+              {
+
                 bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
 
                 if ( is.null(bc) || ( !is.null(bc$res)  && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
@@ -334,29 +339,34 @@ ilts.format.merge = function(update = TRUE, user = "", years = ""){
                 }
                 eps.depth.final = bcp$eps.depth
                 if(!is.null(eps.depth.backup)){bcp$eps.depth = eps.depth.backup}
-                message(paste("Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
+
+              ##### if bc is not NULL: let user know netmensuration is done, check for error flags, then update RDATA stats file
+                if(!is.null(bc)){
+                  message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
+                  if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range of tow exceeds maximum tow length, netmensuration not completed."))}
+                  iltsStats[[paste(unique(na.omit(set$Trip)), unique(na.omit(set$Setno)),sep=".")]] = bc
+                }
+              ##### if bc is still NULL, list warnings with possible reasons
+                if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
+                  warning(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Touchdown metrics could not be calculated. Possible reason: tow may be too shallow, resulting in too little variation in depth values; check that sd(mergset$depth) > bcp$eps.depth, currently function tries reducing eps.depth as low as ",eps.depth.final," before quitting", sep = ""), immediate. = TRUE)
+                }
 
               },
               error=function(cond) {
                 cont <<- FALSE
                 message(cond)
-
+                warning(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), "not completed"), immediate. = TRUE)
               }
             )
 
 
-            if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
-              warning(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Touchdown metrics could not be calculated. Possible reason: tow may be too shallow, resulting in too little variation in depth values; check that sd(mergset$depth) > bcp$eps.depth, currently function tries reducing eps.depth as low as ",eps.depth.final," before quitting", sep = ""), immediate. = TRUE)
-            }
-
-            iltsStats[[paste(unique(na.omit(set$Trip)), unique(na.omit(set$Setno)),sep=".")]] = bc
           }#END Update clause
         }
       }#END Set subset
     }
   }#END Trip subset
   save(iltsStats, file = file.path(pkg.env$manual.archive, paste("iltsStats_",user, ".RDATA", sep = "")))
-  message(paste("Stats file saved to: ", pkg.env$manual.archive, sep=""))
+  message(paste("iltsStats file saved to: ", pkg.env$manual.archive, sep=""))
 }
 
 

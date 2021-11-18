@@ -4,7 +4,7 @@
 \alias{ilts.format.merge}
 \title{ilts.format.merge}
 \usage{
-ilts.format.merge(update = TRUE, user = "", years = "")
+ilts.format.merge(update = TRUE, user = "", years = "", skiptows = NULL)
 }
 \arguments{
 \item{update}{TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed stations.}
