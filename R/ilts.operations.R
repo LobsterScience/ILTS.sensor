@@ -69,11 +69,11 @@ esonar2df = function(esonar = NULL) {
   esonar$STBDPitch = NA
 
   #esonar$depth[which(esonar$SensorName == "Depth")] = esonar$SensorValue[which(esonar$SensorName == "Depth")]
-  esonar$primary[which(esonar$SensorName == "Headline")] = esonar$SensorValue[which(esonar$SensorName == "Headline")]
-  esonar$wingspread[which(esonar$SensorName == "STBDDoorMaster")] = esonar$SensorValue[which(esonar$SensorName == "STBDDoorMaster")]
+  esonar$primary[which(esonar$SENSORNAME == "Headline")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline")]
+  esonar$wingspread[which(esonar$SENSORNAME == "STBDDoorMaster")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDDoorMaster")]
   #esonar$temperature[which(esonar$SensorName == "Temperature")] = esonar$SensorValue[which(esonar$SensorName == "Temperature")]
-  esonar$STBDRoll[which(esonar$SensorName == "STBDRoll")] = esonar$SensorValue[which(esonar$SensorName == "STBDRoll")]
-  esonar$STBDPitch[which(esonar$SensorName == "STBDPitch")] = esonar$SensorValue[which(esonar$SensorName == "STBDPitch")]
+  esonar$STBDRoll[which(esonar$SENSORNAME == "STBDRoll")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDRoll")]
+  esonar$STBDPitch[which(esonar$SENSORNAME == "STBDPitch")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDPitch")]
 
   esonar$CPUDATETIME = NULL
   esonar$TRANSDUCERNAME = NULL
@@ -120,6 +120,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @param  update TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed stations.
 #' @param user Unique user. This is used to keep user files seperate
 #' @param years single or vector of years to process
+#' @param skiptows skip specific tows specified by TRIP_ID:SET (example: skiptows = '100054289:51')
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
@@ -183,9 +184,8 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
   #seab = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-
   seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-  #rebuild datetime column as it is incorrect and order
+   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
 
@@ -225,10 +225,10 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
             #     names(minisub) = c("temperature","timestamp")
             #   }
             # }
-
+#browser()
             seabsub = NULL
             #Get seabird indicies and extend ?? mins on either side so that depth profile isn't cut off
-            seab.ind.0 = which(seabf$timestamp>set$timestamp[1]-lubridate::minutes(15))[1]
+            seab.ind.0 = which(seabf$timestamp>as_datetime(set$timestamp[1])-lubridate::minutes(15))[1]
             seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
 
             if(!(is.na(seab.ind.0) | is.na(seab.ind.0))){
@@ -343,7 +343,7 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
               ##### if bc is not NULL: let user know netmensuration is done, check for error flags, then update RDATA stats file
                 if(!is.null(bc)){
                   message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
-                  if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range of tow exceeds maximum tow length, netmensuration not completed."))}
+                  if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length, netmensuration not completed."))}
                   iltsStats[[paste(unique(na.omit(set$Trip)), unique(na.omit(set$Setno)),sep=".")]] = bc
                 }
               ##### if bc is still NULL, list warnings with possible reasons

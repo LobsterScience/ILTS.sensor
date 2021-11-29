@@ -112,6 +112,15 @@ for (i in file_list){
     dat$long1[j] = ifelse(dat$long1[j] %in% NA, as.character(dat$long1[(j-1)]), as.character(dat$long1[j]))
   }
 
+  #### if there are still leading NAs, fill with subsequent values
+  for (j in length(dat$lat1):1){
+    dat$lat1[j] = ifelse(dat$lat1[j] %in% NA, as.character(dat$lat1[(j+1)]), as.character(dat$lat1[j]))
+  }
+
+  for (j in length(dat$long1):1){
+    dat$long1[j] = ifelse(dat$long1[j] %in% NA, as.character(dat$long1[(j+1)]), as.character(dat$long1[j]))
+  }
+
   #### format lat and long columns
   dat <- dat %>% mutate(lat1 = ifelse(lat1 %in% NA, NA, paste0(str_sub(lat1, 1,2)," ",str_sub(lat1, 3,-1)," N")))
   dat <- dat %>% mutate(long1 = ifelse(long1 %in% NA, NA, paste0(str_sub(long1, 1,3)," ",str_sub(long1, 4,-1)," W")))
@@ -185,6 +194,10 @@ for (i in file_list){
 
   ##rename remaining columns
   dat <- dat %>% rename(SENSORNAME = `Type of Data`,SENSORVALUE=Value,VALIDITY =Status,SIGNALSTRENGTH=SNR,SPEED = Speed_knots)
+
+  ## remove redundant rows:
+
+  dat <- unique(dat)
 
   ### add additional columns and arrange:
 

@@ -12,6 +12,8 @@ ilts.format.merge(update = TRUE, user = "", years = "", skiptows = NULL)
 \item{user}{Unique user. This is used to keep user files seperate}
 
 \item{years}{single or vector of years to process}
+
+\item{skiptows}{skip specific tows specified by TRIP_ID:SET (example: skiptows = '100054289:51')}
 }
 \value{
 list of lists. Format (top to bottom) year-set-data
