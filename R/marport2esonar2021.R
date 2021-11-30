@@ -150,7 +150,7 @@ for (i in file_list){
 
   ##### check if column names need correcting
 
-  if(year(dat$CPUDATEANDTIME[1])=='2021' & month(dat$CPUDATEANDTIME[1]) %in% c('6','7')){correct.col.names=T}
+  if(year(dat$CPUDATEANDTIME[1])=='2021'){correct.col.names=T}
 
   if(correct.col.names==T){
     dat <- dat%>% select(-SNR,-Status, -`Noise Floor`)
