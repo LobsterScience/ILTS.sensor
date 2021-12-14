@@ -68,8 +68,9 @@ esonar2df = function(esonar = NULL) {
   esonar$STBDRoll = NA
   esonar$STBDPitch = NA
 
+  browser()
   #esonar$depth[which(esonar$SensorName == "Depth")] = esonar$SensorValue[which(esonar$SensorName == "Depth")]
-  esonar$primary[which(esonar$SENSORNAME == "Headline")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline")]
+  esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
   esonar$wingspread[which(esonar$SENSORNAME == "STBDDoorMaster")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDDoorMaster")]
   #esonar$temperature[which(esonar$SensorName == "Temperature")] = esonar$SensorValue[which(esonar$SensorName == "Temperature")]
   esonar$STBDRoll[which(esonar$SENSORNAME == "STBDRoll")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDRoll")]
@@ -158,8 +159,8 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
   if(length(err)>0)esona = esona[-err,]
 
   ##### Addition to solve LATITUDE data logging issues - Geraint E.
-  library(tidyr)
-  library(dplyr)
+  require(tidyr)
+  require(dplyr)
   esona = esona %>% mutate(LATITUDE = ifelse(substr(LATITUDE,5,5) %in% " ", paste0(substr(LATITUDE,1,4),substr(LATITUDE,6,nchar(LATITUDE))),
                                              ifelse(substr(LATITUDE,6,6) %in% " ", paste0(substr(LATITUDE,1,5),substr(LATITUDE,7,nchar(LATITUDE))),LATITUDE)))
   esona <- esona %>% mutate(LATITUDE = gsub("n","N",LATITUDE)) %>% mutate(LATITUDE = gsub("F","N",LATITUDE))
@@ -176,7 +177,7 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
     years = as.character(years)
     yind = which(as.character(lubridate::year(esona$timestamp)) %in% years)
     if(length(yind)>0)esona = esona[yind,]
-    if(length(esona$timestamp)==0)stop("No data found for your year selection!")
+    if(length(esona$timestamp)==0)warning("No ILTS_SENSOR data found for your year selection!", immediate. = TRUE)
   }
   # mini = get.oracle.table(tn = "FRAILC.MINILOG_TEMP")
   # #rebuild datetime column as it is incorrect and order
@@ -189,20 +190,48 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
 
+  ## filter ILTS_TEMPERATURE dataset for desired years also, in case it needs to be used as the set reference
+  if(years != ""){
+    years = as.character(years)
+    yind = which(as.character(lubridate::year(seabf$timestamp)) %in% years)
+    if(length(yind)>0)seabf = seabf[yind,]
+    if(length(seabf$timestamp)==0)warning("No ILTS_TEMPERATURE data found for your year selection!", immediate. = TRUE)
+  }
   ## remove tows selected by user
   esona <- esona %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
   esona <- esona %>% filter(!(tow %in% skiptows))
+  seabf <- seabf %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
+  seabf <- seabf %>% filter(!(tow %in% skiptows))
 
-  #Loop through each esonar file to convert and merge with temp
-  eson = split(esona, esona$TRIP_ID)
-  for(i in 1:length(eson)){
+ #browser()
+   ## create a logic to reference ILTS_TEMPERATURE trip and set instead if ILTS_SENSORS data is missing
+  reftemp = FALSE
+  if(length(unique(seabf$tow)) > length(unique(esona$tow))){reftemp = TRUE}
+
+  #Loop through each esonar (or seabf) file to convert and merge with temp
+  if(reftemp){tripref = unique(seabf$TRIP_ID)}else{tripref = unique(esona$TRIP_ID)}
+
+
+  for(i in tripref){
     if(cont){ #Condition fails if program exited
-      trip = data.frame(eson[[i]])
-      trip = split(trip, trip$SET_NO)
-      for(j in 1:length(trip)){
+      trip_eson <- esona %>% filter(TRIP_ID %in% i)
+      trip_seabf <- seabf %>% filter(TRIP_ID %in% i)
+      if(nrow(trip_eson)==0){
+        setref = unique(trip_seabf$SET_NO)
+        warning(paste("No ILTS_SENSOR data found for Trip ID:",i,"!"), immediate. = TRUE)
+        }else{setref = unique(trip_eson$SET_NO)}
+      for(j in setref){
         if(cont){ #Condition fails if program exited
-          set = data.frame(trip[[j]])
-          set = esonar2df(set)
+          set_eson <- esona %>% filter(TRIP_ID %in% i) %>% filter(SET_NO %in% j)
+          set_seabf <- seabf %>% filter(TRIP_ID %in% i) %>% filter(SET_NO %in% j)
+          if(nrow(set_eson)==0){
+            set = set_seabf %>% select(SET_NO,TRIP_ID,timestamp) %>%
+            mutate(Date=NA,Time=NA,Latitude=NA,Longitude=NA,Speed=NA,Setno=SET_NO,latedit=NA,Trip=TRIP_ID,
+                   timestamp=timestamp,Primary=NA,Secondary=NA,WingSpread=NA,Roll=NA,Pitch=NA) %>%
+            select(-SET_NO,-TRIP_ID)
+          warning(paste("No ILTS_SENSOR data found for TRIP ID:",i,", SET:",j,"! Netmensuration will use dummy Lat and Long values"), immediate. = TRUE)
+          }else{set = esonar2df(set_eson)}
+
 
           #Dont continue if update is false and station is already complete
 
@@ -228,8 +257,14 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
 #browser()
             seabsub = NULL
             #Get seabird indicies and extend ?? mins on either side so that depth profile isn't cut off
-            seab.ind.0 = which(seabf$timestamp>as_datetime(set$timestamp[1])-lubridate::minutes(15))[1]
+            # OR reference start and end of seabf directly when reftemp = TRUE
+            if(reftemp){
+              seab.ind.0 = which(seabf$timestamp==set$timestamp[1])
+              seab.ind.1 = which(seabf$timestamp==set$timestamp[length(set$timestamp)])
+              }else{
+            seab.ind.0 = which(seabf$timestamp>set$timestamp[1]-lubridate::minutes(15))[1]
             seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
+              }
 
             if(!(is.na(seab.ind.0) | is.na(seab.ind.0))){
 
@@ -283,7 +318,13 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
 
             names(mergset) = tolower(names(mergset))
             mergset$opening = mergset$primary
+
             #Fix missing position data by repeating the last know position. No NA positions allowed in bottom.contact function
+            #BUT, running tows with no esonar data means no coordinates, so in these cases insert a dummy coordinate
+            if(nrow(set_eson)==0){
+              mergset$latitude[1] = 00.00000
+              mergset$longitude[1] = -00.00000
+            }
             for(k in 1:nrow(mergset)){
               if(k==1 && is.na(mergset$latitude[k])){
                 mergset$latitude[k] = mergset$latitude[!is.na(mergset$latitude)][1]
@@ -307,6 +348,7 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
 
             #Try to recover from user termination in order to write the current stat list to file
 
+#browser()
             tryCatch(
                # print(mergset$depth)
               {
@@ -343,7 +385,8 @@ ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NU
               ##### if bc is not NULL: let user know netmensuration is done, check for error flags, then update RDATA stats file
                 if(!is.null(bc)){
                   message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
-                  if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length, netmensuration not completed."))}
+                  if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length. Netmensuration not completed."))}
+                  if(bc$error.flag %in% 'not enough variability in data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough variability data? Tow may be too shallow. Netmensuration not completed."))}
                   iltsStats[[paste(unique(na.omit(set$Trip)), unique(na.omit(set$Setno)),sep=".")]] = bc
                 }
               ##### if bc is still NULL, list warnings with possible reasons

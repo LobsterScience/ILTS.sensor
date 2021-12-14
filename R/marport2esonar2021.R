@@ -49,25 +49,26 @@ for (i in file_list){
 
   NMEA <- gpst$NMEA
 
+
   out.gpst = NULL
   for (j in 1:length(NMEA)){
     if(gpst$NMEA[j] == "$GPGGA"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$b[j]),as.character(gpst$d[j]), NA,NA,NA,NA)
+      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$b[j]),as.character(gpst$d[j]), NA,NA,NA,NA,NA)
       out.gpst = rbind(out.gpst, ooo)
     }
 
     if(gpst$NMEA[j] == "$GPGLL"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$e[j]),as.character(gpst$a[j]),as.character(gpst$c[j]), NA,NA,NA,NA)
+      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$e[j]),as.character(gpst$a[j]),as.character(gpst$c[j]), NA,NA,NA,NA,NA)
       out.gpst = rbind(out.gpst, ooo)
     }
 
     if(gpst$NMEA[j] == "$GPRMC"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),NA,NA)
+      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),NA,NA,as.character(gpst$i[j]))
       out.gpst = rbind(out.gpst, ooo)
     }
 
     if(gpst$NMEA[j] == "$GPVTG"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],NA,NA,NA,as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$g[j]) )
+      ooo = cbind(gpst$Time[j],gpst$NMEA[j],NA,NA,NA,as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$g[j]),NA )
       out.gpst = rbind(out.gpst, ooo)
     }
 
@@ -84,12 +85,13 @@ for (i in file_list){
 
   #### clean up column headers
   dat <- dat %>% rename(CPUDATEANDTIME =Time, GPSTIME = V3, LATITUDE = V4, LONGITUDE = V5)
-  dat <- dat %>% rename(Track_made_good_deg_true = V6, Track_made_good_deg_magnetic = V7, Speed_knots = V8, Speed_over_ground_kph = V9)
+  dat <- dat %>% rename(Track_made_good_deg_true = V6, Track_made_good_deg_magnetic = V7, Speed_knots = V8, Speed_over_ground_kph = V9, GPSDATE = V10)
   dat$CPUDATEANDTIME = as_datetime(dat$CPUDATEANDTIME)
 
-  #### change GPSTIME from UTC to Local and add date column
+
+  #### change GPSTIME from UTC to Local
   # dat <- dat %>% mutate(GPSTIME1 = parse_time(as.character(GPSTIME), "%H%M%S"))
-  dat <- dat %>% mutate(GPSDATE = as.Date(CPUDATEANDTIME))
+  # dat <- dat %>% mutate(GPSDATE = as.Date(CPUDATEANDTIME))
   # dat <- dat %>% mutate(GPSDATETIME = ifelse(GPSTIME1 %in% NA, NA, paste(GPSDATE,"",GPSTIME1)))
   # dat <- dat %>% mutate(GPSTIME2 = as_datetime(ifelse(GPSDATETIME %in% NA, NA, as_datetime(GPSDATETIME) - 10800)))
   # dat <- dat %>% separate(GPSTIME2, c(NA,"GPSTIME3"), sep= " ")
@@ -126,13 +128,60 @@ for (i in file_list){
   dat <- dat %>% mutate(long1 = ifelse(long1 %in% NA, NA, paste0(str_sub(long1, 1,3)," ",str_sub(long1, 4,-1)," W")))
   dat <- dat %>% rename(lat_filled = lat1, long_filled = long1)
 
-  #### Fill down GPSTIME, SPEED and HEADING values
+  #### Fill down GPSTIME, GPSDATE, SPEED and HEADING values
 
+### GPSTIME fill needs to be smart enough to fill from down values if the above value is across a large time gap (different tow)
+  ### also needs to fill from down for initial rows if these are missing.
 
   for (j in 1:length(dat$GPSTIME)){
-    dat$GPSTIME[j] = ifelse(dat$GPSTIME[j] %in% NA, as.character(dat$GPSTIME[(j-1)]), as.character(dat$GPSTIME[j]))
-  }
+    if(j==1){
+      for(k in 1:30){
+        if(is.na(dat$GPSTIME[j])){
+          if((as_datetime(dat$CPUDATEANDTIME[j+1])-as_datetime(dat$CPUDATEANDTIME[(j)]))<4){dat$GPSTIME[j] = as.character(dat$GPSTIME[(k+1)])}
+          if(!is.na(dat$GPSTIME[k+1])){break}
+        }
+      }
+    }
+    if(is.na(dat$GPSTIME[j])){
+      if((as_datetime(dat$CPUDATEANDTIME[j])-as_datetime(dat$CPUDATEANDTIME[(j-1)]))<4){dat$GPSTIME[j] = as.character(dat$GPSTIME[(j-1)])}
+      if(is.na(dat$GPSTIME[j])){
+        for (k in 1:30){
+          if(!is.na(dat$GPSTIME[j])){break}
+          if(!is.na(dat$GPSTIME[(j+k)])){
+            if((as_datetime(dat$CPUDATEANDTIME[(j+k)])-as_datetime(dat$CPUDATEANDTIME[j]))<4){
+              dat$GPSTIME[j] = as.character(dat$GPSTIME[(j+k)])
+            }
+          }
+        }
+      }
+    }
+    }
 
+
+#### GPSDATE fill must be smart enough to switch to next date if GPSTIME rolls over 24 hours
+  ### also needs to fill from down for initial rows if these are missing.
+  dat$GPSDATE = as.character(dat$GPSDATE)
+
+  for (j in 1:length(dat$GPSDATE)){
+    if(j==1){
+      for(k in 1:30){
+        if(is.na(dat$GPSDATE[j])){
+          if(parse_time(as.character(dat$GPSTIME[j]),format = "%H%M%S")<=parse_time(as.character(dat$GPSTIME[(k+1)]),format = "%H%M%S")){dat$GPSDATE[j] = as.character(dat$GPSDATE[(k+1)])}
+          if(!is.na(dat$GPSDATE[k+1])){break}
+        }
+      }
+    }
+    if(dat$GPSDATE[j] %in% NA){
+      dat$GPSDATE[j] = ifelse(parse_time(as.character(dat$GPSTIME[j]),format = "%H%M%S")<parse_time(as.character(dat$GPSTIME[(j-1)]),format = "%H%M%S"),
+                              paste0(day(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1),
+                                     substr(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1,6,7),
+                                     substr(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1,3,4)),
+                              as.character(dat$GPSDATE[(j-1)]))
+      }
+    }
+
+
+####
   for (j in 1:length(dat$Speed_knots)){
     dat$Speed_knots[j] = ifelse(dat$Speed_knots[j] %in% NA, as.character(dat$Speed_knots[(j-1)]), as.character(dat$Speed_knots[j]))
   }
