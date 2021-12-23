@@ -1,8 +1,9 @@
+
 #' @title marport2esonar2021
 #' @description for converting 2021 marport data to esonar format.
 #' @param data_directory is file path to where unconverted Marport files are stored.
 #' @param output_directory is file path to create directory where converted data will be stored.
-#' @param correct.col.names June-July 2021 Marport data had incorrect column headers, if this problem is not resolved in later outputs, use correct.col.names=T (function will override to T if June-July 2021 data is being run)
+#' @param correct.col.names 2021 Marport data had incorrect column headers, if this problem is not resolved in later outputs, use correct.col.names=T to correct column names (function will override to T if 2021 data is being run)
 #' @param heading chooses whether to use "true" or "magnetic" heading. Default = "magnetic"
 #' @author Geraint Element
 #' @export
@@ -101,67 +102,16 @@ for (i in file_list){
   #### Remove GPRMB rows
   dat <- dat %>% filter(!(NMEA %in% "$GPRMB"))
 
-  #### fill NA coordinates with proceeding Lat and Long values
 
-  dat <- dat %>% mutate(lat1 = LATITUDE)
-  dat <- dat %>% mutate(long1 = LONGITUDE)
-
-  for (j in 1:length(dat$lat1)){
-    dat$lat1[j] = ifelse(dat$lat1[j] %in% NA, as.character(dat$lat1[(j-1)]), as.character(dat$lat1[j]))
-  }
-
-  for (j in 1:length(dat$long1)){
-    dat$long1[j] = ifelse(dat$long1[j] %in% NA, as.character(dat$long1[(j-1)]), as.character(dat$long1[j]))
-  }
-
-  #### if there are still leading NAs, fill with subsequent values
-  for (j in length(dat$lat1):1){
-    dat$lat1[j] = ifelse(dat$lat1[j] %in% NA, as.character(dat$lat1[(j+1)]), as.character(dat$lat1[j]))
-  }
-
-  for (j in length(dat$long1):1){
-    dat$long1[j] = ifelse(dat$long1[j] %in% NA, as.character(dat$long1[(j+1)]), as.character(dat$long1[j]))
-  }
-
-  #### format lat and long columns
-  dat <- dat %>% mutate(lat1 = ifelse(lat1 %in% NA, NA, paste0(str_sub(lat1, 1,2)," ",str_sub(lat1, 3,-1)," N")))
-  dat <- dat %>% mutate(long1 = ifelse(long1 %in% NA, NA, paste0(str_sub(long1, 1,3)," ",str_sub(long1, 4,-1)," W")))
-  dat <- dat %>% rename(lat_filled = lat1, long_filled = long1)
-
-  #### Fill down GPSTIME, GPSDATE, SPEED and HEADING values
-
-### GPSTIME fill needs to be smart enough to fill from down values if the above value is across a large time gap (different tow)
-  ### also needs to fill from down for initial rows if these are missing.
-
-  for (j in 1:length(dat$GPSTIME)){
-    if(j==1){
-      for(k in 1:30){
-        if(is.na(dat$GPSTIME[j])){
-          if((as_datetime(dat$CPUDATEANDTIME[j+1])-as_datetime(dat$CPUDATEANDTIME[(j)]))<4){dat$GPSTIME[j] = as.character(dat$GPSTIME[(k+1)])}
-          if(!is.na(dat$GPSTIME[k+1])){break}
-        }
-      }
-    }
-    if(is.na(dat$GPSTIME[j])){
-      if((as_datetime(dat$CPUDATEANDTIME[j])-as_datetime(dat$CPUDATEANDTIME[(j-1)]))<4){dat$GPSTIME[j] = as.character(dat$GPSTIME[(j-1)])}
-      if(is.na(dat$GPSTIME[j])){
-        for (k in 1:30){
-          if(!is.na(dat$GPSTIME[j])){break}
-          if(!is.na(dat$GPSTIME[(j+k)])){
-            if((as_datetime(dat$CPUDATEANDTIME[(j+k)])-as_datetime(dat$CPUDATEANDTIME[j]))<4){
-              dat$GPSTIME[j] = as.character(dat$GPSTIME[(j+k)])
-            }
-          }
-        }
-      }
-    }
-    }
+  #### Fill down GPSTIME, GPSDATE, SPEED, HEADING and coordinate values
+  dat$GPSTIME = smartfill(dat$GPSTIME,reftime=dat$CPUDATEANDTIME,timeflex=4)
 
 
-#### GPSDATE fill must be smart enough to switch to next date if GPSTIME rolls over 24 hours
-  ### also needs to fill from down for initial rows if these are missing.
+  #### Can't use smartfill for GPSDATE; must switch to next date if GPSTIME rolls over 24 hours
+  ### also needs to fill from down for initial rows if this is NA.
   dat$GPSDATE = as.character(dat$GPSDATE)
 
+  ### first block:fill from down for initial rows if this is NA.
   for (j in 1:length(dat$GPSDATE)){
     if(j==1){
       for(k in 1:30){
@@ -171,31 +121,62 @@ for (i in file_list){
         }
       }
     }
+    ### second block: adds 1 day to GPSDATE if previous row's GPSTIME is greater value, otherwise just fills value from previous row
     if(dat$GPSDATE[j] %in% NA){
       dat$GPSDATE[j] = ifelse(parse_time(as.character(dat$GPSTIME[j]),format = "%H%M%S")<parse_time(as.character(dat$GPSTIME[(j-1)]),format = "%H%M%S"),
-                              paste0(day(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1),
+                              ifelse(nchar(as.character(dat$GPSDATE[(j-1)]))==5,
+                                     (paste0(day(parse_date(paste0("0",as.character(dat$GPSDATE[(j-1)])),format = "%d%m%y")+1),
+                                      substr(parse_date(paste0("0",as.character(dat$GPSDATE[(j-1)])),format = "%d%m%y")+1,6,7),
+                                      substr(parse_date(paste0("0",as.character(dat$GPSDATE[(j-1)])),format = "%d%m%y")+1,3,4))
+                                      ),
+
+                                     paste0(day(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1),
                                      substr(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1,6,7),
-                                     substr(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1,3,4)),
+                                     substr(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1,3,4)
+                                     )),
                               as.character(dat$GPSDATE[(j-1)]))
       }
     }
 
 
-####
-  for (j in 1:length(dat$Speed_knots)){
-    dat$Speed_knots[j] = ifelse(dat$Speed_knots[j] %in% NA, as.character(dat$Speed_knots[(j-1)]), as.character(dat$Speed_knots[j]))
-  }
+#### smartfill remaining variables
+  dat$Track_made_good_deg_true = smartfill(dat$Track_made_good_deg_true,reftime=dat$CPUDATEANDTIME,timeflex=4)
+  dat$Track_made_good_deg_magnetic = smartfill(dat$Track_made_good_deg_magnetic,reftime=dat$CPUDATEANDTIME,timeflex=4)
+  dat$Speed_knots= smartfill(dat$Speed_knots,reftime=dat$CPUDATEANDTIME,timeflex=4)
+  dat$LATITUDE = smartfill(dat$LATITUDE,reftime=dat$CPUDATEANDTIME,timeflex=4)
+  dat$LONGITUDE = smartfill(dat$LONGITUDE,reftime=dat$CPUDATEANDTIME,timeflex=4)
 
 
-  for (j in 1:length(dat$Track_made_good_deg_magnetic)){
-    dat$Track_made_good_deg_magnetic[j] = ifelse(dat$Track_made_good_deg_magnetic[j] %in% NA, as.character(dat$Track_made_good_deg_magnetic[(j-1)]), as.character(dat$Track_made_good_deg_magnetic[j]))
-  }
+
+# # ##### If you don't want to use smartfill function use this (same thing):
+  # for(j in 1:length(dat$GPSTIME)){
+  #   if(j==1){
+  #     for(k in 1:30){
+  #       if(is.na(dat$GPSTIME[j])){
+  #         if(difftime(as_datetime(dat$CPUDATEANDTIME[j+1]),as_datetime(dat$CPUDATEANDTIME[(j)]),units = "secs")<=4){dat$GPSTIME[j] = as.character(dat$GPSTIME[(k+1)])}
+  #         if(!is.na(dat$GPSTIME[k+1])){break}
+  #       }
+  #     }
+  #   }
+  #   if(is.na(dat$GPSTIME[j])){
+  #     if(difftime(as_datetime(dat$CPUDATEANDTIME[j]),as_datetime(dat$CPUDATEANDTIME[(j-1)]), units = "secs")<=4){dat$GPSTIME[j] = as.character(dat$GPSTIME[(j-1)])}
+  #     if(is.na(dat$GPSTIME[j])){
+  #       for (k in 1:30){
+  #         if(!is.na(dat$GPSTIME[j])){break}
+  #         if(!is.na(dat$GPSTIME[(j+k)])){
+  #           if(difftime(as_datetime(dat$CPUDATEANDTIME[(j+k)]),as_datetime(dat$CPUDATEANDTIME[j]), units = "secs")<=4){
+  #             dat$GPSTIME[j] = as.character(dat$GPSTIME[(j+k)])
+  #           }
+  #         }
+  #       }
+  #     }
+  #   }
+  #   }
 
 
-  for (j in 1:length(dat$Track_made_good_deg_true)){
-    dat$Track_made_good_deg_true[j] = ifelse(dat$Track_made_good_deg_true[j] %in% NA, as.character(dat$Track_made_good_deg_true[(j-1)]), as.character(dat$Track_made_good_deg_true[j]))
-  }
-
+  #### format lat and long columns
+  dat <- dat %>% mutate(LATITUDE = ifelse(LATITUDE %in% NA, NA, paste0(str_sub(LATITUDE, 1,2)," ",str_sub(LATITUDE, 3,-1)," N")))
+  dat <- dat %>% mutate(LONGITUDE = ifelse(LONGITUDE %in% NA, NA, paste0(str_sub(LONGITUDE, 1,3)," ",str_sub(LONGITUDE, 4,-1)," W")))
 
   ##### check if column names need correcting
 
@@ -231,7 +212,7 @@ for (i in file_list){
   }
 
   #### Format CPUEDATEANDTIME and remove unused columns
-  dat <- dat %>% select(-LATITUDE, -LONGITUDE,-`Noise Floor`,-Periode,-RxKey, -Speed_over_ground_kph, -NMEA) %>% rename(LATITUDE = lat_filled, LONGITUDE = long_filled)
+  dat <- dat %>% select(-`Noise Floor`,-Periode,-RxKey, -Speed_over_ground_kph, -NMEA)
 
   #### create TRANSDUCERNAME values
   dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(`Sensor Location` %in% "10", "HEADLINE",
@@ -243,6 +224,11 @@ for (i in file_list){
 
   ##rename remaining columns
   dat <- dat %>% rename(SENSORNAME = `Type of Data`,SENSORVALUE=Value,VALIDITY =Status,SIGNALSTRENGTH=SNR,SPEED = Speed_knots)
+
+  ## reformat GPSDATE
+  dat <- dat %>% mutate(GPSDATE= if_else(nchar(GPSDATE)==5,
+                               parse_date(paste0("0",as.character(GPSDATE)),format = "%d%m%y"),
+                               parse_date(as.character(GPSDATE),format = "%d%m%y")))
 
   ## remove redundant rows:
 

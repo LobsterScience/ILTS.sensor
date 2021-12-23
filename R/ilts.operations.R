@@ -71,10 +71,11 @@ esonar2df = function(esonar = NULL) {
   browser()
   #esonar$depth[which(esonar$SensorName == "Depth")] = esonar$SensorValue[which(esonar$SensorName == "Depth")]
   esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
+  esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = easonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
   esonar$wingspread[which(esonar$SENSORNAME == "STBDDoorMaster")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDDoorMaster")]
   #esonar$temperature[which(esonar$SensorName == "Temperature")] = esonar$SensorValue[which(esonar$SensorName == "Temperature")]
-  esonar$STBDRoll[which(esonar$SENSORNAME == "STBDRoll")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDRoll")]
-  esonar$STBDPitch[which(esonar$SENSORNAME == "STBDPitch")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDPitch")]
+  #esonar$STBDRoll[which(esonar$SENSORNAME == "STBDRoll")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDRoll")]
+  #esonar$STBDPitch[which(esonar$SENSORNAME == "STBDPitch")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDPitch")]
 
   esonar$CPUDATETIME = NULL
   esonar$TRANSDUCERNAME = NULL
@@ -434,5 +435,5 @@ format.lol = function(x = NULL){
 
 #####Execute
 
-#ilts.format.merge(update = FALSE, user = "geraint", years = "2020" )
+##click_touch(update = FALSE, user = "geraint", years = "2020" )
 
