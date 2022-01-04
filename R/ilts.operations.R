@@ -68,7 +68,7 @@ esonar2df = function(esonar = NULL) {
   esonar$STBDRoll = NA
   esonar$STBDPitch = NA
 
-  browser()
+  #browser()
   #esonar$depth[which(esonar$SensorName == "Depth")] = esonar$SensorValue[which(esonar$SensorName == "Depth")]
   esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
   esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = easonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
@@ -126,7 +126,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-ilts.format.merge = function(update = TRUE, user = "", years = "", skiptows = NULL){
+click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
   #Set up database server, user and password
   init.project.vars()
 
