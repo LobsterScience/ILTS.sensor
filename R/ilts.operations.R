@@ -69,13 +69,18 @@ esonar2df = function(esonar = NULL) {
   esonar$STBDPitch = NA
 
   #browser()
-  #esonar$depth[which(esonar$SensorName == "Depth")] = esonar$SensorValue[which(esonar$SensorName == "Depth")]
-  esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
-  esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = easonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
-  esonar$wingspread[which(esonar$SENSORNAME == "STBDDoorMaster")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDDoorMaster")]
-  #esonar$temperature[which(esonar$SensorName == "Temperature")] = esonar$SensorValue[which(esonar$SensorName == "Temperature")]
+  if(years %in% "2021"){
+    esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
+    esonar$wingspread[which(esonar$SENSORNAME == 'DISTANCE' & esonar$TRANSDUCERNAME=="WINGSPREAD")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DISTANCE" & esonar$TRANSDUCERNAME == "WINGSPREAD")]
+  }else{
+    esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
+    esonar$wingspread[which(esonar$SENSORNAME == "STBDDoorMaster" & esonar$TRANSDUCERNAME == "DoorSpread")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDDoorMaster" & esonar$TRANSDUCERNAME == "DoorSpread")]
+    }
+
+    #esonar$temperature[which(esonar$SensorName == "Temperature")] = esonar$SensorValue[which(esonar$SensorName == "Temperature")]
   #esonar$STBDRoll[which(esonar$SENSORNAME == "STBDRoll")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDRoll")]
   #esonar$STBDPitch[which(esonar$SENSORNAME == "STBDPitch")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDPitch")]
+  #esonar$depth[which(esonar$SensorName == "Depth")] = esonar$SensorValue[which(esonar$SensorName == "Depth")]
 
   esonar$CPUDATETIME = NULL
   esonar$TRANSDUCERNAME = NULL
