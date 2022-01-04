@@ -2,9 +2,9 @@
 
 S3method(format,lol)
 export(LobsterMarport)
+export(click_touch)
 export(esonar2df)
 export(get.oracle.table)
-export(ilts.format.merge)
 export(init.project.vars)
 export(marport2esonar)
 export(marport2esonar2021)
