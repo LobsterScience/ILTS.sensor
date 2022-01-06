@@ -17,6 +17,12 @@ require(lubridate) || stop("Install lubridate")
 load(file.path(fpath,paste0('marport.',year,'.rdata')))
 load(file.path(fpath,paste0('marport.gps.',year,'.rdata')))
 
+#### clean reporting irregularities
+# gps$X_clean = gsub("W","",gps$X)
+# gps$X_clean = as.numeric(gsub(" ","",gps$X_clean))
+# gps$Y_clean = gsub("N","",gps$Y)
+# gps$Y_clean = as.numeric(gsub(" ","",gps$Y_clean))
+# clean <- gps %>% filter(X_clean %in% NA | Y_clean %in% NA)
 #### gps prep
 
 gps <- gps %>% mutate(Date = sub("00","20",Date))

@@ -56,28 +56,45 @@ init.project.vars = function() {
 #' @import lubridate
 #' @return dataframe
 #' @export
-esonar2df = function(esonar = NULL) {
+esonar2df = function(esonar = NULL, years=NULL) {
   names(esonar)
   #colnames(esonar) = c("CPUDateTime","GPSDate","GPSTime","Latitude","Longitude","Speed","Heading","Validity","TransducerName","SensorName","SensorValue","ErrorCode","Hydrophone","SignalStrength", "setno", "latedit", "trip", "datetime")
 
   esonar$primary = NA  #Headline
-  esonar$secondary = NA #Is nothing but may need in file
+  #esonar$secondary = NA #Is nothing but may need in file
   esonar$wingspread = NA
   #esonar$depth = NA
   #esonar$temperature = NA
-  esonar$STBDRoll = NA
-  esonar$STBDPitch = NA
+  #esonar$STBDRoll = NA
+  #esonar$STBDPitch = NA
 
   #browser()
+  ## headline height
   if(years %in% "2021"){
     esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
     esonar$wingspread[which(esonar$SENSORNAME == 'DISTANCE' & esonar$TRANSDUCERNAME=="WINGSPREAD")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DISTANCE" & esonar$TRANSDUCERNAME == "WINGSPREAD")]
-  }else{
+  }
+  if(years %in% c("2020","2019","2018","2017","2014")){
     esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
-    esonar$wingspread[which(esonar$SENSORNAME == "STBDDoorMaster" & esonar$TRANSDUCERNAME == "DoorSpread")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDDoorMaster" & esonar$TRANSDUCERNAME == "DoorSpread")]
-    }
+  }
+  ###Wingspread
+  if(years %in% c("2020","2019")){
+    esonar$wingspread[which(esonar$SENSORNAME %in% c("STBDDoorMaster","DoorMaster") & esonar$TRANSDUCERNAME == "DoorSpread")] = esonar$SENSORVALUE[which(esonar$SENSORNAME %in% c("STBDDoorMaster","DoorMaster") & esonar$TRANSDUCERNAME == "DoorSpread")]
+  }
+  if(years %in% c("2018","2017","2014")){
+    esonar$wingspread[which(esonar$SENSORNAME == "DoorMaster" & esonar$TRANSDUCERNAME == "DoorSpread")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DoorMaster" & esonar$TRANSDUCERNAME == "DoorSpread")]
+  }
+  if(years %in% c("2016","2015")){
+    esonar$wingspread[which(esonar$SENSORNAME == "DISTANCE" & esonar$TRANSDUCERNAME == "PRP")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DISTANCE" & esonar$TRANSDUCERNAME == "PRP")]
+  }
 
-    #esonar$temperature[which(esonar$SensorName == "Temperature")] = esonar$SensorValue[which(esonar$SensorName == "Temperature")]
+  # for future years, assume names are same as 2021, change this if needed:
+  if(as.numeric(years)>2021){
+    esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
+    esonar$wingspread[which(esonar$SENSORNAME == 'DISTANCE' & esonar$TRANSDUCERNAME=="WINGSPREAD")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DISTANCE" & esonar$TRANSDUCERNAME == "WINGSPREAD")]
+  }
+
+  #esonar$temperature[which(esonar$SensorName == "Temperature")] = esonar$SensorValue[which(esonar$SensorName == "Temperature")]
   #esonar$STBDRoll[which(esonar$SENSORNAME == "STBDRoll")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDRoll")]
   #esonar$STBDPitch[which(esonar$SENSORNAME == "STBDPitch")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "STBDPitch")]
   #esonar$depth[which(esonar$SensorName == "Depth")] = esonar$SensorValue[which(esonar$SensorName == "Depth")]
@@ -93,10 +110,10 @@ esonar2df = function(esonar = NULL) {
   esonar$HEADING = NULL
 
 
-  esonar <- esonar %>% select(GPSDATE,GPSTIME,LATITUDE,LONGITUDE,SPEED,SET_NO,DDLAT,TRIP_ID,timestamp,primary,secondary,wingspread,STBDRoll,STBDPitch)
+  esonar <- esonar %>% select(GPSDATE,GPSTIME,LATITUDE,LONGITUDE,SPEED,SET_NO,DDLAT,TRIP_ID,timestamp,primary,wingspread)
   #####NOTE: DDLAT is probably the wrong column but didn't know what "latedit" was supposed to be so used DDLAT to fill that space, but doesn't seem to affect running of function - Geraint E.
 
-  colnames(esonar) = c("Date","Time","Latitude","Longitude","Speed", "Setno", "latedit","Trip","timestamp", "Primary","Secondary","WingSpread","Roll", "Pitch")
+  colnames(esonar) = c("Date","Time","Latitude","Longitude","Speed", "Setno", "latedit","Trip","timestamp", "Primary","WingSpread")
 
   return(esonar)
 }
@@ -210,7 +227,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
   seabf <- seabf %>% filter(!(tow %in% skiptows))
 
  #browser()
-   ## create a logic to reference ILTS_TEMPERATURE trip and set instead if ILTS_SENSORS data is missing
+   ## create a logic to reference ILTS_TEMPERATURE trip and set instead if ILTS_SENSORS data is missing for any tows
   reftemp = FALSE
   if(length(unique(seabf$tow)) > length(unique(esona$tow))){reftemp = TRUE}
 
@@ -236,7 +253,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
                    timestamp=timestamp,Primary=NA,Secondary=NA,WingSpread=NA,Roll=NA,Pitch=NA) %>%
             select(-SET_NO,-TRIP_ID)
           warning(paste("No ILTS_SENSOR data found for TRIP ID:",i,", SET:",j,"! Netmensuration will use dummy Lat and Long values"), immediate. = TRUE)
-          }else{set = esonar2df(set_eson)}
+          }else{set = esonar2df(set_eson, years)}
 
 
           #Dont continue if update is false and station is already complete
@@ -262,9 +279,9 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             # }
 #browser()
             seabsub = NULL
-            #Get seabird indicies and extend ?? mins on either side so that depth profile isn't cut off
-            # OR reference start and end of seabf directly when reftemp = TRUE
-            if(reftemp){
+            #Get seabird indicies and extend mins on either side so that depth profile isn't cut off
+            # OR reference start and end of seabf directly when set = seabf (because set_eson has no data)
+            if(nrow(set_eson)==0){
               seab.ind.0 = which(seabf$timestamp==set$timestamp[1])
               seab.ind.1 = which(seabf$timestamp==set$timestamp[length(set$timestamp)])
               }else{
@@ -440,5 +457,5 @@ format.lol = function(x = NULL){
 
 #####Execute
 
-##click_touch(update = FALSE, user = "geraint", years = "2020" )
+##click_touch(update = TRUE, user = "geraint", years = "2021" )
 

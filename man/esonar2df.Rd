@@ -4,7 +4,7 @@
 \alias{esonar2df}
 \title{esonar2df}
 \usage{
-esonar2df(esonar = NULL)
+esonar2df(esonar = NULL, years = NULL)
 }
 \arguments{
 \item{esonar}{The esonar data to convert}
