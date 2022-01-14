@@ -2,6 +2,7 @@
 
 S3method(format,lol)
 export(LobsterMarport)
+export(check_table_align)
 export(click_touch)
 export(esonar2df)
 export(get.oracle.table)

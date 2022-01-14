@@ -289,9 +289,22 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
               }
 
-            if(!(is.na(seab.ind.0) | is.na(seab.ind.0))){
+            if(is.na(seab.ind.0) | is.na(seab.ind.1))stop(paste0("No Date/Time alignment between ILTS_SENSOR and ILTS_TEMPERATURE tables for Trip:",set$Trip[1]," Set:",set$Setno[1]))
+
+
+            if(!(is.na(seab.ind.0) | is.na(seab.ind.1))){
 
               seabsub = seabf[c(seab.ind.0:seab.ind.1),]
+
+              ## trim any hangover into other tows:
+              seabsub <- seabsub %>% mutate(tow = paste(TRIP_ID,SET_NO))
+              set <- set %>% mutate(tow = paste(Trip,Setno))
+              seabsub <- seabsub %>% filter(tow %in% set$tow[1])
+              seabsub <- seabsub %>% select(-tow)
+              set <- set %>% select(-tow)
+              if(nrow(seabsub)==0)stop(paste0("No Date/Time alignment between ILTS_SENSOR and ILTS_TEMPERATURE tables for Trip:",set$Trip[1]," Set:",set$Setno[1]))
+              ##
+
               seabsub = seabsub[,which(names(seabsub) %in% c("timestamp", "TEMPC", "DEPTHM"))]
               names(seabsub) = c("temperature","depth","timestamp")
             }
@@ -301,6 +314,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             #Remove depths = <0 #Not sure why but came accross stations with low depth values mixed in with real bottom depths.
             seabsub$depth[which(seabsub$depth <= 2)] = NA
 
+#browser()
             #Merge sensor data.
             mergset = merge(seabsub, set, "timestamp", all = TRUE)
             #Build the full, unbroken timeseries and merge
@@ -367,11 +381,17 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
               }
             }
 
+
+            ### filter Doorspread values for minimum and maximum spread
+            mergset <- mergset %>% mutate(wingspread = ifelse(wingspread>20,20,
+                                                              ifelse(wingspread<5,5,wingspread)))
+
+
             mergset$doorspread = mergset$wingspread
 
             #Try to recover from user termination in order to write the current stat list to file
 
-#browser()
+
             tryCatch(
                # print(mergset$depth)
               {
