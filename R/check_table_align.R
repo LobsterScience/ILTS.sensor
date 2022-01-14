@@ -49,7 +49,9 @@ colnames(temp_dat_check) <- c("Sensor_tow","SOURCE_Temp")
 failtest <- left_join(failtest,temp_dat_check)
 failtest_1 <- failtest %>% filter(as.perc == 0)
 
-write.csv(failtest, file = "failtest.csv", row.names = FALSE)
-write.csv(failtest_1, file = "failtest_filtered.csv", row.names = FALSE)
+write.csv(failtest, file = "align_check.csv", row.names = FALSE)
+write.csv(failtest_1, file = "align_check_filtered.csv", row.names = FALSE)
+
+print("diagnostic files written to working directory")
 
 }
