@@ -277,7 +277,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             #     names(minisub) = c("temperature","timestamp")
             #   }
             # }
-#browser()
+
             seabsub = NULL
             #Get seabird indicies and extend mins on either side so that depth profile isn't cut off
             # OR reference start and end of seabf directly when set = seabf (because set_eson has no data)
@@ -308,6 +308,19 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
               seabsub = seabsub[,which(names(seabsub) %in% c("timestamp", "TEMPC", "DEPTHM"))]
               names(seabsub) = c("temperature","depth","timestamp")
             }
+#browser()
+            #### make a dummy depth parabola if there are no depth data
+            if(all(is.na(seabsub$depth))){
+              seabsub$dum_time = as.numeric(rownames(seabsub)) - 0.5*length(seabsub$depth)
+              seabsub$depth = 0.001*(-seabsub$dum_time^2)
+              seabsub$depth = seabsub$depth + max(-seabsub$depth)
+              # ggplot(seabsub,aes(x=dum_time,y=depth))+
+              #   geom_point()
+              warning("No Depth data; netmensuration will use dummy depth parabola", immediate. = TRUE)
+              no.depth = TRUE
+            }
+
+
 
             if(is.null(seabsub) && is.null(minisub))stop(paste("No temperature/depth file found for trip - set:  ", unique(na.omit(set$Trip)), " - ", unique(na.omit(set$Setno)), sep=""))
         #    if(is.null(seabsub)) seabsub = minisub
@@ -391,7 +404,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
 
             #Try to recover from user termination in order to write the current stat list to file
 
-
+#browser()
             tryCatch(
                # print(mergset$depth)
               {
@@ -430,6 +443,25 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
                   message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
                   if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length. Netmensuration not completed."))}
                   if(bc$error.flag %in% 'not enough variability in data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough variability data? Tow may be too shallow. Netmensuration not completed."))}
+
+                  #### remove depth data from R file and csv file if dummy depths were used
+                  if(no.depth){
+                    bc$plotdata$depth = NA
+                    bc$depth.mean = NA
+                    bc$depth.sd = NA
+                    bc$depth.n = NA
+                    bc$depth.n.bad = NA
+                    bc$depth.smoothed.mean = NA
+                    bc$depth.smoothed.sd = NA
+                    bc$depth.filtered = NA
+                    bc$depth.smoothed = NA
+                    bc$error.flag = "No Depth data!"
+
+                    csv.file <- read.csv(bcp$from.manual.file, as.is = TRUE)
+                    csv.file <- csv.file %>% mutate(depth = ifelse(trip %in% bcp$trip & station %in% bcp$station,NA, depth))
+                    write.csv(csv.file,bcp$from.manual.file, row.names = FALSE)
+                  }
+                  ##
                   iltsStats[[paste(unique(na.omit(set$Trip)), unique(na.omit(set$Setno)),sep=".")]] = bc
                 }
               ##### if bc is still NULL, list warnings with possible reasons
