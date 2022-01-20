@@ -277,7 +277,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             #     names(minisub) = c("temperature","timestamp")
             #   }
             # }
-
+#browser()
             seabsub = NULL
             #Get seabird indicies and extend mins on either side so that depth profile isn't cut off
             # OR reference start and end of seabf directly when set = seabf (because set_eson has no data)
@@ -285,9 +285,16 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
               seab.ind.0 = which(seabf$timestamp==set$timestamp[1])
               seab.ind.1 = which(seabf$timestamp==set$timestamp[length(set$timestamp)])
               }else{
-            seab.ind.0 = which(seabf$timestamp>set$timestamp[1]-lubridate::minutes(15))[1]
-            seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
-              }
+                    seab.ind.0 = which(seabf$timestamp>set$timestamp[1]-lubridate::minutes(15))[1]
+
+                    ## in case it is last tow of ILTS_TEMPERATURE
+                    if(max(which(seabf$tow == set_eson$tow[1])) == max(as.numeric(rownames(seabf)))){
+                    seab.ind.1 = max(as.numeric(rownames(seabf)))
+                    print("Last tow of ILTS_TEMPERATURE data set!")
+                    }else{
+                    seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
+                    }
+            }
 
             if(is.na(seab.ind.0) | is.na(seab.ind.1))stop(paste0("No Date/Time alignment between ILTS_SENSOR and ILTS_TEMPERATURE tables for Trip:",set$Trip[1]," Set:",set$Setno[1]))
 
@@ -310,6 +317,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             }
 #browser()
             #### make a dummy depth parabola if there are no depth data
+            no.depth = FALSE
             if(all(is.na(seabsub$depth))){
               seabsub$dum_time = as.numeric(rownames(seabsub)) - 0.5*length(seabsub$depth)
               seabsub$depth = 0.001*(-seabsub$dum_time^2)
@@ -408,7 +416,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             tryCatch(
                # print(mergset$depth)
               {
-
+#browser()
                 bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
 
                 if ( is.null(bc) || ( !is.null(bc$res)  && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
