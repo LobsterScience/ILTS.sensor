@@ -174,7 +174,9 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
   plotdata = F #Alternative plotting that we do not require
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
+  #esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
+  #esona_fallback <<- esona
+  esona <- esona_fallback
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -207,8 +209,9 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
   # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
-  #seab = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-  seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
+  #seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
+  #seabf_fallback <<- seabf
+  seabf <- seabf_fallback
    #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
@@ -257,7 +260,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
 
 
           #Dont continue if update is false and station is already complete
-
+#browser()
           if((paste(unique(na.omit(set$Setno)), unique(na.omit(set$Trip)), sep = ".") %in% paste(current$station, current$trip, sep = ".")) & (update==FALSE)){
             message(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Already added call with update = TRUE to redo.", sep = ""))
           }else{
@@ -281,6 +284,12 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             seabsub = NULL
             #Get seabird indicies and extend mins on either side so that depth profile isn't cut off
             # OR reference start and end of seabf directly when set = seabf (because set_eson has no data)
+
+            #OR skip making seasub entirely and make dummy table if there's no seabf data
+            if(nrow(set_seabf)==0 | nrow(set_seabf %>% filter(SOURCE %in% "NO_DATA")) == nrow(set_seabf)){
+              seabsub = data.frame(temperature = rep(NA,nrow(set)), depth = rep(NA,nrow(set)), timestamp = set$timestamp)
+            }else{
+
             if(nrow(set_eson)==0){
               seab.ind.0 = which(seabf$timestamp==set$timestamp[1])
               seab.ind.1 = which(seabf$timestamp==set$timestamp[length(set$timestamp)])
@@ -290,7 +299,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
                     ## in case it is last tow of ILTS_TEMPERATURE
                     if(max(which(seabf$tow == set_eson$tow[1])) == max(as.numeric(rownames(seabf)))){
                     seab.ind.1 = max(as.numeric(rownames(seabf)))
-                    print("Last tow of ILTS_TEMPERATURE data set!")
+                    print(paste("Last tow of ILTS_TEMPERATURE data set for",years,"!"))
                     }else{
                     seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
                     }
@@ -315,15 +324,27 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
               seabsub = seabsub[,which(names(seabsub) %in% c("timestamp", "TEMPC", "DEPTHM"))]
               names(seabsub) = c("temperature","depth","timestamp")
             }
+
+
+
+            }
+
+
 #browser()
             #### make a dummy depth parabola if there are no depth data
             no.depth = FALSE
             if(all(is.na(seabsub$depth))){
               seabsub$dum_time = as.numeric(rownames(seabsub)) - 0.5*length(seabsub$depth)
               seabsub$depth = 0.001*(-seabsub$dum_time^2)
-              seabsub$depth = seabsub$depth + max(-seabsub$depth)
-              # ggplot(seabsub,aes(x=dum_time,y=depth))+
-              #   geom_point()
+              seabsub$depth = seabsub$depth + max(-seabsub$depth) + 3
+              ### if sd(depth) is too small (because of small seabf dataset length, make a bigger parabola)
+              if(sd(seabsub$depth)<1){
+                seabsub$depth = 0.1*(-seabsub$dum_time^2)
+                seabsub$depth = seabsub$depth + max(-seabsub$depth) + 3
+                }
+
+             # ggplot(seabsub,aes(x=dum_time,y=depth))+
+             #      geom_point()
               warning("No Depth data; netmensuration will use dummy depth parabola", immediate. = TRUE)
               no.depth = TRUE
             }
@@ -332,8 +353,10 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
 
             if(is.null(seabsub) && is.null(minisub))stop(paste("No temperature/depth file found for trip - set:  ", unique(na.omit(set$Trip)), " - ", unique(na.omit(set$Setno)), sep=""))
         #    if(is.null(seabsub)) seabsub = minisub
+
             #Remove depths = <0 #Not sure why but came accross stations with low depth values mixed in with real bottom depths.
             seabsub$depth[which(seabsub$depth <= 2)] = NA
+
 
 #browser()
             #Merge sensor data.
@@ -346,6 +369,18 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
             #Find deepest point and extend possible data from that out to 20min on either side
             aredown = mergset$timestamp[which(mergset$depth == max(mergset$depth, na.rm = T))]
             time.gate =  list( t0=as.POSIXct(aredown)-lubridate::dminutes(20), t1=as.POSIXct(aredown)+lubridate::dminutes(20) )
+
+            #### make a dummy depth parabola if there are no depth data
+            # no.depth = FALSE
+            # if(all(is.na(mergset$depth))){
+            #   mergset$dum_time = as.numeric(rownames(mergset)) - 0.5*length(mergset$depth)
+            #   mergset$depth = 0.001*(-mergset$dum_time^2)
+            #   mergset$depth = mergset$depth + max(-mergset$depth) + 2
+            #   # ggplot(seabsub,aes(x=dum_time,y=depth))+
+            #   #   geom_point()
+            #   warning("No Depth data; netmensuration will use dummy depth parabola", immediate. = TRUE)
+            #   no.depth = TRUE
+            # }
 
             # Build the variables need for the proper execution of the bottom contact function from
             # the netmensuration package
@@ -379,28 +414,39 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
 
             #Fix missing position data by repeating the last know position. No NA positions allowed in bottom.contact function
             #BUT, running tows with no esonar data means no coordinates, so in these cases insert a dummy coordinate
-            if(nrow(set_eson)==0){
-              mergset$latitude[1] = 00.00000
-              mergset$longitude[1] = -00.00000
-            }
-            for(k in 1:nrow(mergset)){
-              if(k==1 && is.na(mergset$latitude[k])){
-                mergset$latitude[k] = mergset$latitude[!is.na(mergset$latitude)][1]
-                mergset$longitude[k] = mergset$longitude[!is.na(mergset$longitude)][1]
+            #AND if depth data are too sparse, use loess smoothing instead to avoid many duplicate values
+#browser()
+             if(nrow(set_seabf)/nrow(set_eson) < 0.05){
+              merg_loess = loess(depth~as.numeric(timestamp), data=mergset)
+              merg_depth = predict(merg_loess, data.frame(timestamp = mergset$timestamp))
+              mergset$depth = merg_depth
+              }else{
+
+              if(nrow(set_eson)==0){
+                mergset$latitude[1] = 00.00000
+                mergset$longitude[1] = -00.00000
               }
-              if(is.na(mergset$latitude[k])){
-                mergset$latitude[k] = mergset$latitude[k-1]
-                mergset$longitude[k] = mergset$longitude[k-1]
+              for(k in 1:nrow(mergset)){
+                if(k==1 && is.na(mergset$latitude[k])){
+                  mergset$latitude[k] = mergset$latitude[!is.na(mergset$latitude)][1]
+                  mergset$longitude[k] = mergset$longitude[!is.na(mergset$longitude)][1]
+                }
+                if(is.na(mergset$latitude[k])){
+                  mergset$latitude[k] = mergset$latitude[k-1]
+                  mergset$longitude[k] = mergset$longitude[k-1]
+                }
+
+                #Fix missing depth data by repeating the last know depth. No NA depth allowed in bottom.contact function
+                if(k==1 && is.na(mergset$depth[k])){
+                  mergset$depth[k] = mergset$depth[!is.na(mergset$depth)][1]
+                }
+                if(is.na(mergset$depth[k])){
+                  mergset$depth[k] = mergset$depth[k-1]
+                }
               }
 
-              #Fix missing depth data by repeating the last know depth. No NA depth allowed in bottom.contact function
-              if(k==1 && is.na(mergset$depth[k])){
-                mergset$depth[k] = mergset$depth[!is.na(mergset$depth)][1]
-              }
-              if(is.na(mergset$depth[k])){
-                mergset$depth[k] = mergset$depth[k-1]
-              }
             }
+
 
 
             ### filter Doorspread values for minimum and maximum spread
@@ -436,7 +482,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
                 eps.depth.backup = NULL
                 if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
                   eps.depth.backup = bcp$eps.depth
-                  for(i in 1:5){
+                  for(i in 1:6){
                   if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
                   bcp$eps.depth = bcp$eps.depth - 0.01
                   bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
@@ -449,9 +495,11 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
               ##### if bc is not NULL: let user know netmensuration is done, check for error flags, then update RDATA stats file
                 if(!is.null(bc)){
                   message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
-                  if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length. Netmensuration not completed."))}
-                  if(bc$error.flag %in% 'not enough variability in data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough variability data? Tow may be too shallow. Netmensuration not completed."))}
-
+                  if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length. Netmensuration not completed!"))}
+                  if(bc$error.flag %in% 'Not enough data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough good data? Netmensuration not completed!"))}
+                  if(bc$error.flag %in% 'not enough variability in data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough variability data? Tow may be too shallow. Netmensuration not completed!"))}
+                  if(bc$error.flag %in% 'Time track is too short?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Tow may be too short/not enough good data? Netmensuration not completed!"))}
+                  if(bc$error.flag %in% 'Time track is too long?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Tow may be too long. Netmensuration not completed!"))}
                   #### remove depth data from R file and csv file if dummy depths were used
                   if(no.depth){
                     bc$plotdata$depth = NA
