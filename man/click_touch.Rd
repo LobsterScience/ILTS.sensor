@@ -4,7 +4,13 @@
 \alias{click_touch}
 \title{ilts.format.merge}
 \usage{
-click_touch(update = TRUE, user = "", years = "", skiptows = NULL)
+click_touch(
+  update = TRUE,
+  user = "",
+  years = "",
+  skiptows = NULL,
+  dummy.depth = NULL
+)
 }
 \arguments{
 \item{update}{TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed stations.}
@@ -14,6 +20,8 @@ click_touch(update = TRUE, user = "", years = "", skiptows = NULL)
 \item{years}{single or vector of years to process}
 
 \item{skiptows}{skip specific tows specified by TRIP_ID:SET (example: skiptows = '100054289:51')}
+
+\item{no.depth}{if real depth data is insufficient but still want to check headline distance and wingspread, run specified tows with dummy depth (example: no.depth = '100054289:51')}
 }
 \value{
 list of lists. Format (top to bottom) year-set-data

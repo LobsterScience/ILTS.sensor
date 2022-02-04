@@ -68,7 +68,7 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   #esonar$STBDRoll = NA
   #esonar$STBDPitch = NA
 
-#browser()
+
 
   ## headline height
   if(years %in% "2021"){
@@ -78,13 +78,31 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   if(years %in% c("2020","2019","2018","2017","2014")){
     esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
   }
-  ###for sets with no depths in seabf, use depth readings from headline (NBTE) or wingspread(PRP) sensors, whichever has more data
-  if(all(is.na(set_seabf$DEPTHM))){
-    if(nrow(esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH")) > nrow(esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH"))){
+  ###for sets with no depths in seabf, use depth readings from HEADLINE, NBTE or wingspread(PRP) sensors, whichever has more data
+#browser()
+    if(all(is.na(set_seabf$DEPTHM))){
+#browser()
+    depth.opts = c(nrow(esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH")),
+                     nrow(esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH")),
+                     nrow(esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH")))
+                     #nrow(esonar %>% filter(TRANSDUCERNAME %in% "WINGSPREAD" & SENSORNAME %in% "DEPTH"))
+    if(which.max(depth.opts)==1){
       esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "PRP" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "PRP" & esonar$SENSORNAME == "DEPTH")]
       depth_source <<- "PRP:DEPTH"
-    }else{esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")]
-          depth_source <<- "NBTE:DEPTH"}
+      }
+    if(which.max(depth.opts)==2){
+      esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")]
+      depth_source <<- "NBTE:DEPTH"
+    }
+    if(which.max(depth.opts)==3){
+      esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "HEADLINE" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "HEADLINE" & esonar$SENSORNAME == "DEPTH")]
+      depth_source <<- "HEADLINE:DEPTH"
+    }
+    # if(which.max(depth.opts)==4){
+    #   esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "WINGSPREAD" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "WINGSPREAD" & esonar$SENSORNAME == "DEPTH")]
+    #   depth_source <<- "WINGSPREAD:DEPTH"
+    # }
+#browser()
   }
   ###Wingspread
   if(years %in% c("2020","2019")){
@@ -154,10 +172,11 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @param user Unique user. This is used to keep user files seperate
 #' @param years single or vector of years to process
 #' @param skiptows skip specific tows specified by TRIP_ID:SET (example: skiptows = '100054289:51')
+#' @param no.depth if real depth data is insufficient but still want to check headline distance and wingspread, run specified tows with dummy depth (example: no.depth = '100054289:51')
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
+click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, dummy.depth = NULL){
   #Set up database server, user and password
   init.project.vars()
 
@@ -259,18 +278,18 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
         if(cont){ #Condition fails if program exited
           set_eson <- esona %>% filter(TRIP_ID %in% i) %>% filter(SET_NO %in% j)
           set_seabf <- seabf %>% filter(TRIP_ID %in% i) %>% filter(SET_NO %in% j)
-          ### filter for only raw sensor values
-          if(nrow(set_eson)>0 & nrow(set_eson %>% filter(VALIDITY %in% c("RAW",1000)))==0){
-            warning(paste("Can't find any raw sensor readings for TRIP:",set_seabf$TRIP_ID[1],"Set:",set_seabf$SET_NO[1],"!"), immediate. = TRUE)
+          if(nrow(set_eson)==0){
+            warning(paste("No ILTS_SENSOR data found for TRIP ID:",set_seabf$TRIP_ID[1],"Set:",set_seabf$SET_NO[1],"!"), immediate. = TRUE)
           }
+          ### filter for only raw sensor values and if none, use seabf as set
           set_eson <- set_eson %>% filter(VALIDITY %in% c("RAW",1000))
           if(nrow(set_eson)==0){
             using.seabf.for.set = TRUE
             set = set_seabf %>% select(SET_NO,TRIP_ID,timestamp) %>%
             mutate(Date=NA,Time=NA,Latitude=NA,Longitude=NA,Speed=NA,Setno=SET_NO,latedit=NA,Trip=TRIP_ID,
-                   timestamp=timestamp,Primary=NA,Secondary=NA,WingSpread=NA,Roll=NA,Pitch=NA) %>%
+                   timestamp=timestamp,Primary=NA,WingSpread=NA,SensorDepth=NA) %>%
             select(-SET_NO,-TRIP_ID)
-          warning(paste("No ILTS_SENSOR data found for TRIP ID:",i,", SET:",j,"! Netmensuration will use dummy Lat and Long values"), immediate. = TRUE)
+          warning(paste("No RAW ILTS_SENSOR data found for TRIP ID:",i,", SET:",j,"!"), immediate. = TRUE)
           }else{set = esonar2df(set_eson, years, set_seabf)}
 
 
@@ -347,8 +366,15 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
 
 #browser()
             #### make a dummy depth parabola if there are no (or too few) depth data in any dataset
+            parabola = FALSE
             no.depth = FALSE
             if(nrow(seabsub %>% filter(!(depth %in% NA)))<5 & nrow(set %>% filter(!(SensorDepth %in% NA)))<5){
+              parabola=TRUE
+              warning("Not enough depth data found in any dataset; netmensuration will use dummy depth parabola", immediate. = TRUE)}
+            if(!is.null(dummy.depth) && dummy.depth == paste0(set$Trip[1],":",set$Setno[1])){
+              parabola=TRUE
+              warning("using dummy depth parabola at user's call")}
+            if(parabola){
               seabsub$dum_time = as.numeric(rownames(seabsub)) - 0.5*length(seabsub$depth)
               seabsub$depth = 0.001*(-seabsub$dum_time^2)
               seabsub$depth = seabsub$depth + max(-seabsub$depth) + 3
@@ -357,10 +383,6 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
                 seabsub$depth = 0.1*(-seabsub$dum_time^2)
                 seabsub$depth = seabsub$depth + max(-seabsub$depth) + 3
                 }
-
-             # ggplot(seabsub,aes(x=dum_time,y=depth))+
-             #      geom_point()
-              warning("Not enough Depth data in any dataset; netmensuration will use dummy depth parabola", immediate. = TRUE)
               no.depth = TRUE
             }
 
@@ -430,7 +452,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
 
             #Fix missing position data by repeating the last know position. No NA positions allowed in bottom.contact function
             #BUT, running tows with no esonar data means no coordinates, so in these cases insert a dummy coordinate
-            #AND if depth data come from seabf and are too sparse, use loess smoothing instead too many duplicate values
+            #AND if depth data come from seabf and are too sparse, use loess smoothing instead to avoid too many duplicate values
 #browser()
              if(any(!is.na(set_seabf$depth)) & nrow(set_seabf)/nrow(set_eson) < 0.05){
               merg_loess = loess(depth~as.numeric(timestamp), data=mergset, span = 0.5)
@@ -440,9 +462,11 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
 
               if(all(is.na(mergset$latitude))){
                 mergset$latitude[1] = 00.00000
+                message("no latitude data found, using dummy values")
               }
               if(all(is.na(mergset$longitude))){
                 mergset$longitude[1] = -00.00000
+                message("no longitude data found, using dummy values")
               }
               for(k in 1:nrow(mergset)){
                 if(k==1 && is.na(mergset$latitude[k])){
@@ -509,15 +533,17 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL){
                 }
                 eps.depth.final = bcp$eps.depth
                 if(!is.null(eps.depth.backup)){bcp$eps.depth = eps.depth.backup}
-
+#browser()
               ##### if bc is not NULL: let user know netmensuration is done, check for error flags, then update RDATA stats file
                 if(!is.null(bc)){
-                  message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))
+                  if(is.na(bc$error.flag)){message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))}
                   if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length. Netmensuration not completed!"))}
                   if(bc$error.flag %in% 'Not enough data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough good data? Netmensuration not completed!"))}
-                  if(bc$error.flag %in% 'not enough variability in data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough variability data? Tow may be too shallow. Netmensuration not completed!"))}
+                  if(bc$error.flag %in% 'not enough variability in data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough variability in depth data? Tow may be too shallow or not enough depth data. Netmensuration not completed!"))}
                   if(bc$error.flag %in% 'Time track is too short?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Tow may be too short/not enough good data? Netmensuration not completed!"))}
                   if(bc$error.flag %in% 'Time track is too long?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Tow may be too long. Netmensuration not completed!"))}
+
+                  if(bc$error.flag %in% 'not enough variability in data?'){message(paste0("can use dummy.depth=",dQuote(paste0(set$Trip[1],":",set$Setno[1]))," to run with dummy depths"))}
                   #### remove depth data from R file and csv file if dummy depths were used
                   if(no.depth){
                     bc$plotdata$depth = NA
