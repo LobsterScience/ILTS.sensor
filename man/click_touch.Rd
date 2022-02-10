@@ -2,10 +2,10 @@
 % Please edit documentation in R/ilts.operations.R
 \name{click_touch}
 \alias{click_touch}
-\title{ilts.format.merge}
+\title{click_touch}
 \usage{
 click_touch(
-  update = TRUE,
+  update = FALSE,
   user = "",
   years = "",
   skiptows = NULL,
@@ -13,7 +13,7 @@ click_touch(
 )
 }
 \arguments{
-\item{update}{TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed stations.}
+\item{update}{TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed set.nos.}
 
 \item{user}{Unique user. This is used to keep user files seperate}
 

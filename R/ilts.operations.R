@@ -64,6 +64,8 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   #esonar$secondary = NA #Is nothing but may need in file
   esonar$wingspread = NA
   esonar$sensor_depth = NA
+  esonar$sensor_depth1 = NA
+  esonar$sensor_depth2 = NA
   #esonar$temperature = NA
   #esonar$STBDRoll = NA
   #esonar$STBDPitch = NA
@@ -78,29 +80,47 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   if(years %in% c("2020","2019","2018","2017","2014")){
     esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
   }
-  ###for sets with no depths in seabf, use depth readings from HEADLINE, NBTE or wingspread(PRP) sensors, whichever has more data
+
+  ###for sets with no depths in seabf, use depth readings from HEADLINE, NBTE and wingspread(PRP) sensors, clickable depth will be whichever has most time range
 #browser()
     if(all(is.na(set_seabf$DEPTHM))){
-#browser()
-    depth.opts = c(nrow(esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH")),
-                     nrow(esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH")),
-                     nrow(esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH")))
-                     #nrow(esonar %>% filter(TRANSDUCERNAME %in% "WINGSPREAD" & SENSORNAME %in% "DEPTH"))
-    if(which.max(depth.opts)==1){
-      esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "PRP" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "PRP" & esonar$SENSORNAME == "DEPTH")]
-      depth_source <<- "PRP:DEPTH"
-      }
-    if(which.max(depth.opts)==2){
-      esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")]
-      depth_source <<- "NBTE:DEPTH"
-    }
-    if(which.max(depth.opts)==3){
-      esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "HEADLINE" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "HEADLINE" & esonar$SENSORNAME == "DEPTH")]
-      depth_source <<- "HEADLINE:DEPTH"
-    }
+    PRP = esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH")
+    NBTE = esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH")
+    HEADLINE = esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH")
+
+    PRPrange = as.numeric(difftime(PRP$timestamp[length(PRP$timestamp)],PRP$timestamp[1], units = "secs"))
+    NBTErange = as.numeric(difftime(NBTE$timestamp[length(NBTE$timestamp)], NBTE$timestamp[1], units = "secs"))
+    HEADLINErange = as.numeric(difftime(HEADLINE$timestamp[length(HEADLINE$timestamp)], HEADLINE$timestamp[1], units = "secs"))
+
+    depth.range.max = which.max(c(PRPrange, NBTErange, HEADLINErange))
+    depth.opts = c("PRP","NBTE","HEADLINE")
+    depth.source <<- depth.opts[depth.range.max]
+    depth.alts <<- depth.opts[-depth.range.max]
+
+    esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.source & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.source & esonar$SENSORNAME == "DEPTH")]
+    esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")]
+    esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")]
+
+    ## code for choosing alternate depth based on most data points - don't delete yet
+    # depth.opts = c(difftime((esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH"))$timestamp[length],
+    #               esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH"),
+    #               esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH"))
+    #                  #nrow(esonar %>% filter(TRANSDUCERNAME %in% "WINGSPREAD" & SENSORNAME %in% "DEPTH"))
+    # if(which.max(depth.opts)==1){
+    #   esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "PRP" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "PRP" & esonar$SENSORNAME == "DEPTH")]
+    #   depth.source <<- "PRP:DEPTH"
+    #   }
+    # if(which.max(depth.opts)==2){
+    #   esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "NBTE" & esonar$SENSORNAME == "DEPTH")]
+    #   depth.source <<- "NBTE:DEPTH"
+    # }
+    # if(which.max(depth.opts)==3){
+    #   esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "HEADLINE" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "HEADLINE" & esonar$SENSORNAME == "DEPTH")]
+    #   depth.source <<- "HEADLINE:DEPTH"
+    # }
     # if(which.max(depth.opts)==4){
     #   esonar$sensor_depth[which(esonar$TRANSDUCERNAME == "WINGSPREAD" & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == "WINGSPREAD" & esonar$SENSORNAME == "DEPTH")]
-    #   depth_source <<- "WINGSPREAD:DEPTH"
+    #   depth.source <<- "WINGSPREAD:DEPTH"
     # }
 #browser()
   }
@@ -137,10 +157,10 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   esonar$HEADING = NULL
 
 
-  esonar <- esonar %>% select(GPSDATE,GPSTIME,LATITUDE,LONGITUDE,SPEED,SET_NO,DDLAT,TRIP_ID,timestamp,primary,wingspread,sensor_depth)
+  esonar <- esonar %>% select(GPSDATE,GPSTIME,LATITUDE,LONGITUDE,SPEED,SET_NO,DDLAT,TRIP_ID,timestamp,primary,wingspread,sensor_depth,sensor_depth1,sensor_depth2)
   #####NOTE: DDLAT is probably the wrong column but didn't know what "latedit" was supposed to be so used DDLAT to fill that space, but doesn't seem to affect running of function - Geraint E.
 
-  colnames(esonar) = c("Date","Time","Latitude","Longitude","Speed", "Setno", "latedit","Trip","timestamp", "Primary","WingSpread","SensorDepth")
+  colnames(esonar) = c("Date","Time","Latitude","Longitude","Speed", "Setno", "latedit","Trip","timestamp", "Primary","WingSpread","SensorDepth","SensorDepth1","SensorDepth2")
 
   return(esonar)
 }
@@ -166,9 +186,9 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 }
 
 
-#' @title  ilts.format.merge
+#' @title  click_touch
 #' @description  Get all data, format and merge.
-#' @param  update TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed stations.
+#' @param  update TRUE: Add new startion and overwite any previous. FALSE: Skip previously completed set.nos.
 #' @param user Unique user. This is used to keep user files seperate
 #' @param years single or vector of years to process
 #' @param skiptows skip specific tows specified by TRIP_ID:SET (example: skiptows = '100054289:51')
@@ -176,7 +196,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, dummy.depth = NULL){
+click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, dummy.depth = NULL){
   #Set up database server, user and password
   init.project.vars()
 
@@ -185,7 +205,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
 
   if(file.exists(file.path(pkg.env$manual.archive, paste("clicktouchdown_", user, ".csv", sep="")))){
     current = read.csv(file.path(pkg.env$manual.archive, paste("clicktouchdown_", user, ".csv", sep="")))
-    current$station = as.character(current$station)
+    current$set.no = as.character(current$set.no)
     current$trip = as.character(current$trip)
   }else{
     current=NULL
@@ -202,9 +222,9 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
   plotdata = F #Alternative plotting that we do not require
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  #esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
-  #esona_fallback <<- esona
-  esona <- esona_fallback
+  esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
+  esona_fallback <<- esona
+  #esona <- esona_fallback
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -237,10 +257,10 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
   # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
-  #seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-  #seabf_fallback <<- seabf
-  seabf <- seabf_fallback
-   #rebuild datetime column as it is incorrect and order
+  seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
+  seabf_fallback <<- seabf
+  #seabf <- seabf_fallback
+  #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
 
@@ -281,8 +301,8 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
           if(nrow(set_eson)==0){
             warning(paste("No ILTS_SENSOR data found for TRIP ID:",set_seabf$TRIP_ID[1],"Set:",set_seabf$SET_NO[1],"!"), immediate. = TRUE)
           }
-          ### filter for only raw sensor values and if none, use seabf as set
-          set_eson <- set_eson %>% filter(VALIDITY %in% c("RAW",1000))
+          ### filter for only raw sensor values (or "A" if esonar) and if none, use seabf as set
+          set_eson <- set_eson %>% filter(VALIDITY %in% c("A","RAW",1000))
           if(nrow(set_eson)==0){
             using.seabf.for.set = TRUE
             set = set_seabf %>% select(SET_NO,TRIP_ID,timestamp) %>%
@@ -293,9 +313,9 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
           }else{set = esonar2df(set_eson, years, set_seabf)}
 
 
-          #Dont continue if update is false and station is already complete
+          #Dont continue if update is false and set.no is already complete
 #browser()
-          if((paste(unique(na.omit(set$Setno)), unique(na.omit(set$Trip)), sep = ".") %in% paste(current$station, current$trip, sep = ".")) & (update==FALSE)){
+          if((paste(unique(na.omit(set$Setno)), unique(na.omit(set$Trip)), sep = ".") %in% paste(current$set.no, current$trip, sep = ".")) & (update==FALSE)){
             message(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Already added call with update = TRUE to redo.", sep = ""))
           }else{
             # minisub = NULL
@@ -373,7 +393,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
               warning("Not enough depth data found in any dataset; netmensuration will use dummy depth parabola", immediate. = TRUE)}
             if(!is.null(dummy.depth) && dummy.depth == paste0(set$Trip[1],":",set$Setno[1])){
               parabola=TRUE
-              warning("using dummy depth parabola at user's call")}
+              warning("using dummy depth parabola at user's call", immediate. = TRUE)}
             if(parabola){
               seabsub$dum_time = as.numeric(rownames(seabsub)) - 0.5*length(seabsub$depth)
               seabsub$depth = 0.001*(-seabsub$dum_time^2)
@@ -391,10 +411,10 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
             if(is.null(seabsub) && is.null(minisub))stop(paste("No temperature/depth file found for trip - set:  ", unique(na.omit(set$Trip)), " - ", unique(na.omit(set$Setno)), sep=""))
         #    if(is.null(seabsub)) seabsub = minisub
 
-            #Remove depths = <0 #Not sure why but came accross stations with low depth values mixed in with real bottom depths.
+            #Remove depths = <0 #Not sure why but came accross set.nos with low depth values mixed in with real bottom depths.
             seabsub$depth[which(seabsub$depth <= 2)] = NA
 
-#browser()
+
 
             #Merge sensor data.
             mergset = merge(seabsub, set, "timestamp", all = TRUE)
@@ -413,7 +433,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
               mergset = cbind(mergset,loess_depth)
               mergset <- mergset %>% mutate(depth = ifelse(depth - loess_depth > 50, NA, depth))
               mergset <- mergset %>% select(-loess_depth)
-              warning(paste("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1],"Set:",set$Setno[1],", using",depth_source,"from ILTS_SENSORS"), immediate. = TRUE)
+              warning(paste("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1],"Set:",set$Setno[1],", using",depth.source,"from ILTS_SENSORS"), immediate. = TRUE)
             }
             #Find deepest point and extend possible data from that out to 20min on either side
             aredown = mergset$timestamp[which(mergset$depth == max(mergset$depth, na.rm = T))]
@@ -423,7 +443,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
             # Build the variables need for the proper execution of the bottom contact function from
             # the netmensuration package
             bcp = list(
-              station = unique(na.omit(set$Setno)),
+              set.no = unique(na.omit(set$Setno)),
               trip = unique(na.omit(mergset$Trip)),
               YR=as.character(unique(lubridate::year(mergset$timestamp))),
               user.interaction = TRUE,
@@ -445,10 +465,15 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
               noisefilter.target.r2=0.85,
               noisefilter.quants=c(0.025, 0.975))
 #browser()
+
             bcp = netmensuration::bottom.contact.parameters( bcp ) # add other default parameters .. not specified above
+
 
             names(mergset) = tolower(names(mergset))
             mergset$opening = mergset$primary
+
+            #filter headline distance for positive values
+            mergset <- mergset %>% mutate(opening = ifelse(opening < 0,0,opening))
 
             #Fix missing position data by repeating the last know position. No NA positions allowed in bottom.contact function
             #BUT, running tows with no esonar data means no coordinates, so in these cases insert a dummy coordinate
@@ -491,11 +516,9 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
 
 
 #browser()
-            ### filter Doorspread values for minimum and maximum spread
+            ### filter Doorspread values for minimum and maximum spread and filter headline distance for positive values
             mergset <- mergset %>% mutate(wingspread = ifelse(wingspread>20,20,
                                                               ifelse(wingspread<5,5,wingspread)))
-
-
             mergset$doorspread = mergset$wingspread
 
             #Try to recover from user termination in order to write the current stat list to file
@@ -505,7 +528,9 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
                # print(mergset$depth)
               {
 #browser()
+
                 bc = netmensuration::bottom.contact(mergset, bcp, debugrun=FALSE )
+
 
                 if ( is.null(bc) || ( !is.null(bc$res)  && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
                   bcp$noisefilter.target.r2=0.75
@@ -531,11 +556,17 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
                   }
                  }
                 }
+
                 eps.depth.final = bcp$eps.depth
                 if(!is.null(eps.depth.backup)){bcp$eps.depth = eps.depth.backup}
 #browser()
               ##### if bc is not NULL: let user know netmensuration is done, check for error flags, then update RDATA stats file
                 if(!is.null(bc)){
+                  #### make sure 1st column of output is called "set.no" (crab uses "station")
+                  # csv.file <- read.csv(bcp$from.manual.file, as.is = TRUE)
+                  # names(csv.file)[1] = "set.no"
+                  # write.csv(csv.file,bcp$from.manual.file, row.names = FALSE)
+                  ####
                   if(is.na(bc$error.flag)){message(paste("Done"," Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),", Clicktouchdown file updated in: ", pkg.env$manual.archive, sep=""))}
                   if(bc$error.flag %in% 'Too much data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Too much data? Time range may exceed maximum tow length. Netmensuration not completed!"))}
                   if(bc$error.flag %in% 'Not enough data?'){message(paste("error.flag for:","Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)),"Not enough good data? Netmensuration not completed!"))}
@@ -558,7 +589,7 @@ click_touch = function(update = TRUE, user = "", years = "", skiptows = NULL, du
                     bc$error.flag = "No Depth data!"
 
                     csv.file <- read.csv(bcp$from.manual.file, as.is = TRUE)
-                    csv.file <- csv.file %>% mutate(depth = ifelse(trip %in% bcp$trip & station %in% bcp$station,NA, depth))
+                    csv.file <- csv.file %>% mutate(depth = ifelse(trip %in% bcp$trip & set.no %in% bcp$set.no,NA, depth))
                     write.csv(csv.file,bcp$from.manual.file, row.names = FALSE)
                   }
                   ##
