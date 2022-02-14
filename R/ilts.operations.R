@@ -84,13 +84,16 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   ###for sets with no depths in seabf, use depth readings from HEADLINE, NBTE and wingspread(PRP) sensors, clickable depth will be whichever has most time range
 #browser()
     if(all(is.na(set_seabf$DEPTHM))){
-    PRP = esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH")
-    NBTE = esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH")
-    HEADLINE = esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH")
+    PRP = esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+    NBTE = esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+    HEADLINE = esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
 
     PRPrange = as.numeric(difftime(PRP$timestamp[length(PRP$timestamp)],PRP$timestamp[1], units = "secs"))
+    if(length(PRPrange)==0){PRPrange=0}
     NBTErange = as.numeric(difftime(NBTE$timestamp[length(NBTE$timestamp)], NBTE$timestamp[1], units = "secs"))
+    if(length(NBTErange)==0){NBTErange=0}
     HEADLINErange = as.numeric(difftime(HEADLINE$timestamp[length(HEADLINE$timestamp)], HEADLINE$timestamp[1], units = "secs"))
+    if(length(HEADLINErange)==0){HEADLINErange=0}
 
     depth.range.max = which.max(c(PRPrange, NBTErange, HEADLINErange))
     depth.opts = c("PRP","NBTE","HEADLINE")
@@ -196,9 +199,22 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, dummy.depth = NULL){
+click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, dummy.depth = NULL, divert.messages = FALSE){
+
   #Set up database server, user and password
   init.project.vars()
+
+  #####set options for diverting console output
+  outputfile <- file(file.path(pkg.env$manual.archive,"output.txt"), open = "a")
+  sink(outputfile,type = "output", append = TRUE,split = TRUE)
+  if(divert.messages){
+    msgfile <- file(file.path(pkg.env$manual.archive,"messages.txt"), open = "a")
+    sink(msgfile, type = "message")
+  }
+
+  on.exit(sink(type = "message"))
+  on.exit(sink(type = "output"),add = TRUE)
+  #####
 
   cont=TRUE
   if(user == "")stop("You must call this function with a user. exa. ilts.format.merge(update = TRUE, user = 'John'" )
@@ -222,9 +238,9 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   plotdata = F #Alternative plotting that we do not require
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
-  esona_fallback <<- esona
-  #esona <- esona_fallback
+  #esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
+  #esona_fallback <<- esona
+  esona <- esona_fallback
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -257,9 +273,9 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
-  seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-  seabf_fallback <<- seabf
-  #seabf <- seabf_fallback
+  #seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
+  #seabf_fallback <<- seabf
+  seabf <- seabf_fallback
   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
@@ -322,7 +338,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
             # mini.ind.0 = which(mini$timestamp>set$timestamp[1])[1]
             # mini.ind.1 = which(mini$timestamp>set$timestamp[length(set$timestamp)])[1]-1
             # if(!(is.na(mini.ind.0) | is.na(mini.ind.0))){
-            #   minisub = mini[c(mini.ind.0:mini.ind.1),]
+        #   minisub = mini[c(mini.ind.0:mini.ind.1),]
             #   #### Only keep relevant data, If you encounter a minilog file
             #   #    depth, add that column to the following line to catch that case
             #   if("depth" %in% names(minisub)){
@@ -414,8 +430,6 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
             #Remove depths = <0 #Not sure why but came accross set.nos with low depth values mixed in with real bottom depths.
             seabsub$depth[which(seabsub$depth <= 2)] = NA
 
-
-
             #Merge sensor data.
             mergset = merge(seabsub, set, "timestamp", all = TRUE)
             #Build the full, unbroken timeseries and merge
@@ -433,7 +447,23 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
               mergset = cbind(mergset,loess_depth)
               mergset <- mergset %>% mutate(depth = ifelse(depth - loess_depth > 50, NA, depth))
               mergset <- mergset %>% select(-loess_depth)
-              warning(paste("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1],"Set:",set$Setno[1],", using",depth.source,"from ILTS_SENSORS"), immediate. = TRUE)
+              warning(paste0("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1]," Set:",set$Setno[1],", using ",depth.source,":DEPTH from ILTS_SENSORS. ",depth.alts[1],":DEPTH, ",depth.alts[2],":DEPTH provided as alternate"), immediate. = TRUE)
+
+              # do the same for alternate depth sources
+              if(nrow(mergset %>% filter(!(SensorDepth1 %in% NA)))>3){
+              loess_alt1_mod = loess(SensorDepth1~as.numeric(timestamp), data=mergset, span = 0.75)
+              loess_alt1 = predict(loess_alt1_mod, data.frame(timestamp = mergset$timestamp))
+              mergset = cbind(mergset,loess_alt1)
+              mergset <- mergset %>% mutate(SensorDepth1 = ifelse(SensorDepth1 - loess_alt1 > 50, NA, SensorDepth1))
+              mergset <- mergset %>% select(-loess_alt1)
+              }
+              if(nrow(mergset %>% filter(!(SensorDepth2 %in% NA)))>3){
+              loess_alt2_mod = loess(SensorDepth2~as.numeric(timestamp), data=mergset, span = 0.75)
+              loess_alt2 = predict(loess_alt2_mod, data.frame(timestamp = mergset$timestamp))
+              mergset = cbind(mergset,loess_alt2)
+              mergset <- mergset %>% mutate(SensorDepth2 = ifelse(SensorDepth2 - loess_alt2 > 50, NA, SensorDepth2))
+              mergset <- mergset %>% select(-loess_alt2)
+              }
             }
             #Find deepest point and extend possible data from that out to 20min on either side
             aredown = mergset$timestamp[which(mergset$depth == max(mergset$depth, na.rm = T))]

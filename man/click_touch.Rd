@@ -9,7 +9,8 @@ click_touch(
   user = "",
   years = "",
   skiptows = NULL,
-  dummy.depth = NULL
+  dummy.depth = NULL,
+  divert.messages = FALSE
 )
 }
 \arguments{
