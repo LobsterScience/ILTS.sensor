@@ -238,9 +238,9 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   plotdata = F #Alternative plotting that we do not require
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  #esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
-  #esona_fallback <<- esona
-  esona <- esona_fallback
+  esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
+  esona_fallback <<- esona
+  #esona <- esona_fallback
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -273,9 +273,9 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
-  #seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-  #seabf_fallback <<- seabf
-  seabf <- seabf_fallback
+  seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
+  seabf_fallback <<- seabf
+  #seabf <- seabf_fallback
   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
