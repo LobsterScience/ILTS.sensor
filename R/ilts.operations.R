@@ -238,8 +238,8 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   plotdata = F #Alternative plotting that we do not require
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  esona = get.oracle.table(tn = "LOBSTER.ILTS_SENSORS")
-  esona_fallback <<- esona
+  esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
+  #esona_fallback <<- esona
   #esona <- esona_fallback
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
@@ -263,9 +263,9 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   esona$LONGITUDE = format.lol(x = esona$LONGITUDE)
   #If specific years desired filter unwanted
   if(years != ""){
-    years = as.character(years)
-    yind = which(as.character(lubridate::year(esona$timestamp)) %in% years)
-    if(length(yind)>0)esona = esona[yind,]
+    # years = as.character(years)
+    # yind = which(as.character(lubridate::year(esona$timestamp)) %in% years)
+    # if(length(yind)>0)esona = esona[yind,]
     if(length(esona$timestamp)==0)warning("No ILTS_SENSOR data found for your year selection!", immediate. = TRUE)
   }
   # mini = get.oracle.table(tn = "FRAILC.MINILOG_TEMP")
@@ -273,8 +273,8 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
-  seabf = get.oracle.table(tn = "LOBSTER.ILTS_TEMPERATURE")
-  seabf_fallback <<- seabf
+  seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
+  #seabf_fallback <<- seabf
   #seabf <- seabf_fallback
   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
@@ -282,9 +282,9 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
 
   ## filter ILTS_TEMPERATURE dataset for desired years also, in case it needs to be used as the set reference
   if(years != ""){
-    years = as.character(years)
-    yind = which(as.character(lubridate::year(seabf$timestamp)) %in% years)
-    if(length(yind)>0)seabf = seabf[yind,]
+     years = as.character(years)
+    # yind = which(as.character(lubridate::year(seabf$timestamp)) %in% years)
+    # if(length(yind)>0)seabf = seabf[yind,]
     if(length(seabf$timestamp)==0)warning("No ILTS_TEMPERATURE data found for your year selection!", immediate. = TRUE)
   }
   ## remove tows selected by user
@@ -447,7 +447,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
               mergset = cbind(mergset,loess_depth)
               mergset <- mergset %>% mutate(depth = ifelse(depth - loess_depth > 50, NA, depth))
               mergset <- mergset %>% select(-loess_depth)
-              warning(paste0("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1]," Set:",set$Setno[1],", using ",depth.source,":DEPTH from ILTS_SENSORS. ",depth.alts[1],":DEPTH, ",depth.alts[2],":DEPTH provided as alternate"), immediate. = TRUE)
+              warning(paste0("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1]," Set:",set$Setno[1],", using ",depth.source,":DEPTH from ILTS_SENSORS. ",depth.alts[1],":DEPTH, ",depth.alts[2],":DEPTH provided as alternate if available"), immediate. = TRUE)
 
               # do the same for alternate depth sources
               if(nrow(mergset %>% filter(!(SensorDepth1 %in% NA)))>3){
