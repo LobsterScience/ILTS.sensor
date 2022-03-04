@@ -319,7 +319,8 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
           }
           ### filter for only raw sensor values (or "A" if esonar) and if none, use seabf as set
           set_eson <- set_eson %>% filter(VALIDITY %in% c("A","RAW",1000))
-          if(nrow(set_eson)==0){
+          using.seabf.for.set = FALSE
+          if(nrow(set_eson)==0 | nrow(set_eson %>% filter(!(SENSORVALUE %in% NA)))==0){
             using.seabf.for.set = TRUE
             set = set_seabf %>% select(SET_NO,TRIP_ID,timestamp) %>%
             mutate(Date=NA,Time=NA,Latitude=NA,Longitude=NA,Speed=NA,Setno=SET_NO,latedit=NA,Trip=TRIP_ID,
@@ -350,7 +351,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
             #     names(minisub) = c("temperature","timestamp")
             #   }
             # }
-#browser()
+
             seabsub = NULL
             #Get seabird indicies and extend mins on either side so that depth profile isn't cut off
             # OR reference start and end of seabf directly when set = seabf (because set_eson has no data)
@@ -360,7 +361,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
               seabsub = data.frame(temperature = rep(NA,nrow(set)), depth = rep(NA,nrow(set)), timestamp = set$timestamp)
             }else{
 
-            if(nrow(set_eson)==0){
+            if(using.seabf.for.set){
               seab.ind.0 = which(seabf$timestamp==set$timestamp[1])
               seab.ind.1 = which(seabf$timestamp==set$timestamp[length(set$timestamp)])
               }else{
@@ -400,7 +401,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
             }
 
 
-#browser()
+
             #### make a dummy depth parabola if there are no (or too few) depth data in any dataset
             parabola = FALSE
             no.depth = FALSE
