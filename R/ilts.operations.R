@@ -239,8 +239,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
   esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
-  #esona_fallback <<- esona
-  #esona <- esona_fallback
+
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -273,9 +272,8 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
+  # pull in temperature data
   seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
-  #seabf_fallback <<- seabf
-  #seabf <- seabf_fallback
   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
@@ -287,13 +285,28 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
     # if(length(yind)>0)seabf = seabf[yind,]
     if(length(seabf$timestamp)==0)warning("No ILTS_TEMPERATURE data found for your year selection!", immediate. = TRUE)
   }
+  
+###### this code block can be put anywhere, but should be before trip/set looping starts to avoid repeating query  
+  ## bring in additional tow info for user from iltssets_mv (gear, tow length), will add to interactive graph later
+  new_con <- ROracle::dbConnect(drv = DBI::dbDriver("Oracle"),  username = oracle.username, password = oracle.password, dbname = "PTRAN")
+  addit.tow.info <<- ROracle::dbGetQuery(new_con, 
+                                      "SELECT DISTINCT trip_id, set_no, gear, board_date, station,
+                                round(6371 * 2 * asin(sqrt(power(sin((set_lat - abs(haul_lat)) * 3.1415926 / 180 / 2), 2) + cos(set_lat * 3.1415926 / 180) * cos(abs(haul_lat) * 3.1415926 / 180) * power(sin((set_long - haul_long) * 3.1415926 / 180 / 2), 2))), 2) distancekm,
+                                round(3440.065 * 2 * asin(sqrt(power(sin((set_lat - abs(haul_lat)) * 3.1415926 / 180 / 2), 2) + cos(set_lat * 3.1415926 / 180) * cos(abs(haul_lat) * 3.1415926 / 180) * power(sin((set_long - haul_long) * 3.1415926 / 180 / 2), 2))), 2) distancenm
+                            FROM lobster.iltssets_mv 
+                            WHERE board_date > to_date('2014-09-01','YYYY-MM-DD')
+                            AND haulccd_id = 1
+                            order by board_date,
+                                trip_id,
+                                set_no")
+###### 
+  
   ## remove tows selected by user
   esona <- esona %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
   esona <- esona %>% filter(!(tow %in% skiptows))
   seabf <- seabf %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
   seabf <- seabf %>% filter(!(tow %in% skiptows))
 
- #browser()
    ## create a logic to reference ILTS_TEMPERATURE trip and set instead if ILTS_SENSORS data is missing for any tows
   reftemp = FALSE
   if(length(unique(seabf$tow)) > length(unique(esona$tow))){reftemp = TRUE}
@@ -331,7 +344,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
 
 
           #Dont continue if update is false and set.no is already complete
-#browser()
+
           if((paste(unique(na.omit(set$Setno)), unique(na.omit(set$Trip)), sep = ".") %in% paste(current$set.no, current$trip, sep = ".")) & (update==FALSE)){
             message(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Already added call with update = TRUE to redo.", sep = ""))
           }else{
@@ -448,7 +461,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
               mergset = cbind(mergset,loess_depth)
               mergset <- mergset %>% mutate(depth = ifelse(depth - loess_depth > 50, NA, depth))
               mergset <- mergset %>% select(-loess_depth)
-              warning(paste0("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1]," Set:",set$Setno[1],", using ",depth.source,":DEPTH from ILTS_SENSORS. ",depth.alts[1],":DEPTH, ",depth.alts[2],":DEPTH provided as alternate if available"), immediate. = TRUE)
+              warning(paste0("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1]," Set:",set$Setno[1],", using ",depth.source,":DEPTH from ILTS_SENSORS instead for clickable line. ",depth.alts[1],":DEPTH, ",depth.alts[2],":DEPTH provided as alternates if available"), immediate. = TRUE)
 
               # do the same for alternate depth sources
               if(nrow(mergset %>% filter(!(SensorDepth1 %in% NA)))>3){
@@ -671,5 +684,5 @@ format.lol = function(x = NULL){
 
 #####Execute
 
-##click_touch(update = TRUE, user = "geraint", years = "2021" )
+##click_touch(update = FALSE, user = "geraint", years = "2021" )
 
