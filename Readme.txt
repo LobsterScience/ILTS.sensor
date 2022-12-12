@@ -37,4 +37,4 @@ divert.messages = T  ### default is F. If T, causes warning messages to be diver
 
 
 
-When you run the function, a pop-up window will immeditaely open to choose a directory for the output files. If you run the function and nothing is happening, check that the pop-up window has not just opened behnd your current window.
+When you run the function, a pop-up window will immeditaely open to choose a directory for the output files. If you run the function and nothing is happening, check that the pop-up window has not just opened behind your current window.
