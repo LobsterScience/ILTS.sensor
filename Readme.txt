@@ -3,7 +3,7 @@ To Install
 	Make sure you have the devtools package. Also you may need to install dependancies if error arise.
 
 	library(devtools)
-	install_github("jae0/netmensuration")
+	install_github("jakeelement/netmensuration")
 	install_github("LobsterScience/ILTS.sensor, INSTALL_opts=c("--no-multiarch"))
 	install.packages("tidyverse")
 
