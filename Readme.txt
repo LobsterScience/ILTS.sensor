@@ -11,6 +11,8 @@ To Install
 	install.packages("tidyr")
 
 
+Requires Lobster (or snowcrab) .Rprofile setup 
+
 
 FOR original ilts.operations.R script written by Brent Cameron, see brent0/ILTS.sensor
 
