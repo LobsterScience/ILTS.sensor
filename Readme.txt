@@ -35,3 +35,6 @@ skiptows = "character vector of tows to be skipped" #### format is TRIP_ID:SET (
 dummy.depth = "specific tow for which to use a dummy depth parabola" #### the function will always insert a dummy depth parabola if there is no or too little 			real depth data to make a curve. However, even if there is enough depth data but is for some reason insufficient/causes issues with the 			function, the user can use dummy.depth to replace these depths with a parabola so they can still view opening, headline, etc. Format is TRIP_ID:SET 		    (example: dummy.depth = "100057841:2").
 divert.messages = T  ### default is F. If T, causes warning messages to be diverted to the output text file (allows these to be saved for record + reduces screen 			    clutter while running function).
 
+
+
+When you run the function, a pop-up window will immeditaely open to choose a directory for the output files. If you run the function and nothing is happening, check that the pop-up window has not just opened behnd your current window.
