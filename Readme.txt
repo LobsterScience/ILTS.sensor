@@ -37,6 +37,11 @@ If you are working on local copies you need to create a folder in bio.datadirect
 
 To start determining bottom touchdown, or to redo any previously determined sets:
 
+
+require(netmensuration)
+require(ILTS.sensor)
+require(tidyverse)
+
 ilts.format.merge(update = TRUE, user = "brent", use_RODBC = F, use_local = F ) #Set user to whatever you like and indicate how you want to access the data.
 
 If you want to get only the depth and timestamp plots for each set run:
