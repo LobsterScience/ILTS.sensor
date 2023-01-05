@@ -53,25 +53,25 @@ for (i in file_list){
 
   out.gpst = NULL
   for (j in 1:length(NMEA)){
-    if(gpst$NMEA[j] == "$GPGGA"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$b[j]),as.character(gpst$d[j]), NA,NA,NA,NA,NA)
-      out.gpst = rbind(out.gpst, ooo)
-    }
+ #   if(gpst$NMEA[j] == "$GPGGA"){
+ #     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$b[j]),as.character(gpst$d[j]), NA,NA,NA,NA,NA)
+ #     out.gpst = rbind(out.gpst, ooo)
+ #   }
 
-    if(gpst$NMEA[j] == "$GPGLL"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$e[j]),as.character(gpst$a[j]),as.character(gpst$c[j]), NA,NA,NA,NA,NA)
-      out.gpst = rbind(out.gpst, ooo)
-    }
+ #   if(gpst$NMEA[j] == "$GPGLL"){
+ #     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$e[j]),as.character(gpst$a[j]),as.character(gpst$c[j]), NA,NA,NA,NA,NA)
+ #     out.gpst = rbind(out.gpst, ooo)
+ #   }
 
     if(gpst$NMEA[j] == "$GPRMC"){
       ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),NA,NA,as.character(gpst$i[j]))
       out.gpst = rbind(out.gpst, ooo)
     }
 
-    if(gpst$NMEA[j] == "$GPVTG"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],NA,NA,NA,as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$g[j]),NA )
-      out.gpst = rbind(out.gpst, ooo)
-    }
+ #   if(gpst$NMEA[j] == "$GPVTG"){
+ #     ooo = cbind(gpst$Time[j],gpst$NMEA[j],NA,NA,NA,as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$g[j]),NA )
+ #     out.gpst = rbind(out.gpst, ooo)
+ #   }
 
   }
 
