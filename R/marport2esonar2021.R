@@ -16,7 +16,8 @@ marport2esonar2021 <- function(data_directory = file.path(bio.datadirectory,'bio
 # require(bio.utilities)
 require(devtools) || stop("install devtools")
 require(lubridate) || stop("install lubridate")
-require(tidyverse) || stop("install tidyverse")
+require(dplyr) || stop("install dplyr")
+require(tidyr) || stop("install tidyr")
 
 
 #### Read in file, separate columns and clean up headers
