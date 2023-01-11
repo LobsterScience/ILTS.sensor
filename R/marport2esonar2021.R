@@ -10,7 +10,7 @@
 
 marport2esonar2021 <- function(data_directory = file.path(bio.datadirectory,'bio.lobster','data','survey','Marport 2021'),
                                output_directory = file.path(data_directory,'Marport converted'),
-                               correct.col.names=F,heading = "magnetic"){
+                               correct.col.names=T,heading = "magnetic"){
 
 # require(bio.lobster)
 # require(bio.utilities)
@@ -18,9 +18,12 @@ require(devtools) || stop("install devtools")
 require(lubridate) || stop("install lubridate")
 require(dplyr) || stop("install dplyr")
 require(tidyr) || stop("install tidyr")
+require(readr) || stop("install readr")
+require(stringr) || stop("install stringr")
 
 
-#### Read in file, separate columns and clean up headers
+
+#### Read in file, separate columns nd clean up headers
 file_list <- list.files(path=data_directory, pattern = "^[2]")
 
 for (i in file_list){
@@ -65,7 +68,7 @@ for (i in file_list){
  #   }
 
     if(gpst$NMEA[j] == "$GPRMC"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),NA,NA,as.character(gpst$i[j]))
+      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),as.character(gpst$g[j]),NA,as.character(gpst$i[j]))
       out.gpst = rbind(out.gpst, ooo)
     }
 
