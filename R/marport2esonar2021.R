@@ -103,8 +103,8 @@ for (i in file_list){
   # dat <- dat %>% mutate(GPSTIME = gsub(":","",GPSTIME3))
   # dat <- dat %>% select(-GPSTIME1,-GPSDATETIME,-GPSTIME3)
 
-  #### Remove GPRMB rows
-  dat <- dat %>% filter(!(NMEA %in% "$GPRMB"))
+  #### Remove unused NMEA rows
+  dat <- dat %>% filter(!(NMEA %in% c("$GPRMB","$GPGGA","$GPGLL","$GPVTG")))
 
 
   #### Fill down GPSTIME, GPSDATE, SPEED, HEADING and coordinate values
@@ -268,6 +268,14 @@ for (i in file_list){
                "DDLON",
                "SOURCE")]
 
+  
+  ### additional formatting
+  dat$SPEED = round(as.numeric(dat$SPEED), digits = 1)
+  dat$SENSORVALUE = round(as.numeric(dat$SENSORVALUE), digits = 2)
+  dat$SIGNALSTRENGTH = round(as.numeric(dat$SIGNALSTRENGTH), digits = 4)
+  dat <- dat %>% relocate(SIGNALSTRENGTH, .after = last_col())
+  dat$CPUDATEANDTIME = format(dat$CPUDATEANDTIME, "%a %b %d %H:%M:%S %Y")
+  
   ###### change NAs to white space
   dat <- sapply(dat, as.character)
   dat[is.na(dat)] <- ""
