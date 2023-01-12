@@ -269,18 +269,21 @@ for (i in file_list){
                "SOURCE")]
 
   
+  ###### change NAs to white space
+  dat <- sapply(dat, as.character)
+  dat[is.na(dat)] <- ""
+  dat <- as.data.frame(dat)
+
   ### additional formatting
   dat$SPEED = round(as.numeric(dat$SPEED), digits = 1)
   dat$SENSORVALUE = round(as.numeric(dat$SENSORVALUE), digits = 2)
   dat$SIGNALSTRENGTH = round(as.numeric(dat$SIGNALSTRENGTH), digits = 4)
   dat <- dat %>% relocate(SIGNALSTRENGTH, .after = last_col())
+  dat$CPUDATEANDTIME = as_datetime(dat$CPUDATEANDTIME)
   dat$CPUDATEANDTIME = format(dat$CPUDATEANDTIME, "%a %b %d %H:%M:%S %Y")
   
-  ###### change NAs to white space
-  dat <- sapply(dat, as.character)
-  dat[is.na(dat)] <- ""
-
-
+  
+  
   dir.create(output_directory, recursive = TRUE, showWarnings = FALSE )
   write.csv(dat, file = paste0(output_directory,"/",gsub(".csv","",i),"_converted.csv"), row.names = F)
 
