@@ -114,6 +114,9 @@ for (i in file_list){
   #### Can't use smartfill for GPSDATE; must switch to next date if GPSTIME rolls over 24 hours
   ### also needs to fill from down for initial rows if this is NA.
   dat$GPSDATE = as.character(dat$GPSDATE)
+  
+  # add leading zeros to GPS times < 100000
+  dat <- dat %>% mutate(GPSTIME = ifelse(nchar(GPSTIME)==5, paste0("0",GPSTIME), GPSTIME))
 
   ### first block:fill from down for initial rows if this is NA.
   for (j in 1:length(dat$GPSDATE)){
@@ -269,11 +272,7 @@ for (i in file_list){
                "SOURCE")]
 
   
-  ###### change NAs to white space
-  dat <- sapply(dat, as.character)
-  dat[is.na(dat)] <- ""
-  dat <- as.data.frame(dat)
-
+  
   ### additional formatting
   dat$SPEED = round(as.numeric(dat$SPEED), digits = 1)
   dat$SENSORVALUE = round(as.numeric(dat$SENSORVALUE), digits = 2)
@@ -281,6 +280,14 @@ for (i in file_list){
   dat <- dat %>% relocate(SIGNALSTRENGTH, .after = last_col())
   dat$CPUDATEANDTIME = as_datetime(dat$CPUDATEANDTIME)
   dat$CPUDATEANDTIME = format(dat$CPUDATEANDTIME, "%a %b %d %H:%M:%S %Y")
+  
+  
+  ###### change NAs to white space
+  dat <- sapply(dat, as.character)
+  dat[is.na(dat)] <- ""
+
+
+
   
   
   
