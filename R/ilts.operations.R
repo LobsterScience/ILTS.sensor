@@ -238,7 +238,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   plotdata = F #Alternative plotting that we do not require
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
+  esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
 
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
@@ -273,7 +273,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
 
   # pull in temperature data
-  seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
+  seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
