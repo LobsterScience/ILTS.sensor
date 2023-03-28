@@ -87,6 +87,7 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
     PRP = esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
     NBTE = esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
     HEADLINE = esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+    WINGSPREAD = esonar %>% filter(TRANSDUCERNAME %in% "WINGSPREAD" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
 
     PRPrange = as.numeric(difftime(PRP$timestamp[length(PRP$timestamp)],PRP$timestamp[1], units = "secs"))
     if(length(PRPrange)==0){PRPrange=0}
@@ -94,15 +95,18 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
     if(length(NBTErange)==0){NBTErange=0}
     HEADLINErange = as.numeric(difftime(HEADLINE$timestamp[length(HEADLINE$timestamp)], HEADLINE$timestamp[1], units = "secs"))
     if(length(HEADLINErange)==0){HEADLINErange=0}
+    WINGSPREADrange = as.numeric(difftime(WINGSPREAD$timestamp[length(WINGSPREAD$timestamp)], WINGSPREAD$timestamp[1], units = "secs"))
+    if(length(WINGSPREADrange)==0){WINGSPREADrange=0}
 
-    depth.range.max = which.max(c(PRPrange, NBTErange, HEADLINErange))
-    depth.opts = c("PRP","NBTE","HEADLINE")
+    depth.range.max = which.max(c(PRPrange, NBTErange, HEADLINErange, WINGSPREADrange))
+    depth.opts = c("PRP","NBTE","HEADLINE","WINGSPREAD")
     depth.source <<- depth.opts[depth.range.max]
     depth.alts <<- depth.opts[-depth.range.max]
 
     esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.source & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.source & esonar$SENSORNAME == "DEPTH")]
     esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")]
     esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")]
+    esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")]
 
     ## code for choosing alternate depth based on most data points - don't delete yet
     # depth.opts = c(difftime((esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH"))$timestamp[length],
