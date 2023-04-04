@@ -84,30 +84,46 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   ###for sets with no depths in seabf, use depth readings from HEADLINE, NBTE and wingspread(PRP) sensors, clickable depth will be whichever has most time range
 #browser()
     if(all(is.na(set_seabf$DEPTHM))){
-    PRP = esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
-    NBTE = esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
-    HEADLINE = esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
-    WINGSPREAD = esonar %>% filter(TRANSDUCERNAME %in% "WINGSPREAD" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+      #browser()
+      depth.opts <<- c()
+      
+      for(i in unique(esonar$TRANSDUCERNAME)){
+        
+        trans.tab = esonar %>% filter(TRANSDUCERNAME %in% i & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+        if(nrow(trans.tab)>0){
+          depth.opts <<- c(depth.opts,i)
+        }
+        
+        }
+    # PRP = esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+    # NBTE = esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+    # HEADLINE = esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
+    # WINGSPREAD = esonar %>% filter(TRANSDUCERNAME %in% "WINGSPREAD" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
 
-    PRPrange = as.numeric(difftime(PRP$timestamp[length(PRP$timestamp)],PRP$timestamp[1], units = "secs"))
-    if(length(PRPrange)==0){PRPrange=0}
-    NBTErange = as.numeric(difftime(NBTE$timestamp[length(NBTE$timestamp)], NBTE$timestamp[1], units = "secs"))
-    if(length(NBTErange)==0){NBTErange=0}
-    HEADLINErange = as.numeric(difftime(HEADLINE$timestamp[length(HEADLINE$timestamp)], HEADLINE$timestamp[1], units = "secs"))
-    if(length(HEADLINErange)==0){HEADLINErange=0}
-    WINGSPREADrange = as.numeric(difftime(WINGSPREAD$timestamp[length(WINGSPREAD$timestamp)], WINGSPREAD$timestamp[1], units = "secs"))
-    if(length(WINGSPREADrange)==0){WINGSPREADrange=0}
+    # PRPrange = as.numeric(difftime(PRP$timestamp[length(PRP$timestamp)],PRP$timestamp[1], units = "secs"))
+    # if(length(PRPrange)==0){PRPrange=0}
+    # NBTErange = as.numeric(difftime(NBTE$timestamp[length(NBTE$timestamp)], NBTE$timestamp[1], units = "secs"))
+    # if(length(NBTErange)==0){NBTErange=0}
+    # HEADLINErange = as.numeric(difftime(HEADLINE$timestamp[length(HEADLINE$timestamp)], HEADLINE$timestamp[1], units = "secs"))
+    # if(length(HEADLINErange)==0){HEADLINErange=0}
+    # WINGSPREADrange = as.numeric(difftime(WINGSPREAD$timestamp[length(WINGSPREAD$timestamp)], WINGSPREAD$timestamp[1], units = "secs"))
+    # if(length(WINGSPREADrange)==0){WINGSPREADrange=0}
 
-    depth.range.max = which.max(c(PRPrange, NBTErange, HEADLINErange, WINGSPREADrange))
-    depth.opts = c("PRP","NBTE","HEADLINE","WINGSPREAD")
-    depth.source <<- depth.opts[depth.range.max]
-    depth.alts <<- depth.opts[-depth.range.max]
+    #depth.range.max = which.max(c(PRPrange, NBTErange, HEADLINErange, WINGSPREADrange))
+      
+    depth.alts = NULL  ### for netmensuration alternate graph options if wanted
+    
+    esonar$sensor_depth[which(esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DEPTH")]
+    
+# for(i in 1:length(depth.opts)){
+#   esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.opts[i] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.opts[i] & esonar$SENSORNAME == "DEPTH")]
+# }
 
-    esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.source & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.source & esonar$SENSORNAME == "DEPTH")]
-    esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")]
-    esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")]
-    esonar$sensor_depth1[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")]
-
+    # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[1] & esonar$SENSORNAME == "DEPTH")]
+    # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")]
+    # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")]
+    # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[4] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[4] & esonar$SENSORNAME == "DEPTH")]
+    # 
     ## code for choosing alternate depth based on most data points - don't delete yet
     # depth.opts = c(difftime((esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH"))$timestamp[length],
     #               esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH"),
@@ -465,7 +481,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
               mergset = cbind(mergset,loess_depth)
               mergset <- mergset %>% mutate(depth = ifelse(depth - loess_depth > 50, NA, depth))
               mergset <- mergset %>% select(-loess_depth)
-              warning(paste0("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1]," Set:",set$Setno[1],", using ",depth.source,":DEPTH from ILTS_SENSORS instead for clickable line. ",depth.alts[1],":DEPTH, ",depth.alts[2],":DEPTH provided as alternates if available"), immediate. = TRUE)
+              warning(paste0("No depth values in ILTS_TEMPERTAURE for TRIP:",set$Trip[1]," Set:",set$Setno[1],", using DEPTHs from ",paste(depth.opts,collapse = ",")," from ILTS_SENSORS instead for clickable line."), immediate. = TRUE)
 
               # do the same for alternate depth sources
               if(nrow(mergset %>% filter(!(SensorDepth1 %in% NA)))>3){
