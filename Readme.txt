@@ -18,7 +18,7 @@ To Install:
 	library(ILTS.sensor)
 
 
-Requires Lobster (or snowcrab) .Rprofile setup to run functions.
+Requires Lobster (or snowcrab) .Rprofile setup with Oracle credentials to run functions.
 
 
 FOR original ilts.operations.R script written by Brent Cameron, see brent0/ILTS.sensor
