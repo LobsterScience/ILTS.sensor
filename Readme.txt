@@ -5,7 +5,12 @@ To Install:
 
 	install.packages( "devtools", ask=F, dependencies=TRUE )
 	require("devtools")
-	remotes::install_version("INLA", version="20.06.29",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/testing"), dep=TRUE)  ##change version number to get version of INLA built for whatever R version you're running (version list here: https://groups.google.com/g/r-inla-discussion-group/c/c0__KycX1j4)
+	install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+	## If you're using an older version of R, use the following line and change version number to get version of 
+	##INLA built for whatever R version you're running 
+        ##(version list here: https://groups.google.com/g/r-inla-discussion-group/c/c0__KycX1j4): 
+	## remotes::install_version("INLA", version="20.06.29",repos=c(getOption("repos"),
+	## INLA="https://inla.r-inla-download.org/R/testing"), dep=TRUE)
 	install_github("jakeelement/netmensuration")
 	install.packages("dplyr")
 	install.packages("tidyr")
@@ -13,7 +18,7 @@ To Install:
 	library(ILTS.sensor)
 
 
-Requires Lobster (or snowcrab) .Rprofile setup to run functions.
+Requires Lobster (or snowcrab) .Rprofile setup with Oracle credentials to run functions.
 
 
 FOR original ilts.operations.R script written by Brent Cameron, see brent0/ILTS.sensor

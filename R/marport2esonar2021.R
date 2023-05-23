@@ -10,7 +10,7 @@
 
 marport2esonar2021 <- function(data_directory = file.path(bio.datadirectory,'bio.lobster','data','survey','Marport 2021'),
                                output_directory = file.path(data_directory,'Marport converted'),
-                               correct.col.names=F,heading = "magnetic"){
+                               correct.col.names=T,heading = "magnetic"){
 
 # require(bio.lobster)
 # require(bio.utilities)
@@ -18,9 +18,12 @@ require(devtools) || stop("install devtools")
 require(lubridate) || stop("install lubridate")
 require(dplyr) || stop("install dplyr")
 require(tidyr) || stop("install tidyr")
+require(readr) || stop("install readr")
+require(stringr) || stop("install stringr")
 
 
-#### Read in file, separate columns and clean up headers
+
+#### Read in file, separate columns nd clean up headers
 file_list <- list.files(path=data_directory, pattern = "^[2]")
 
 for (i in file_list){
@@ -65,7 +68,7 @@ for (i in file_list){
  #   }
 
     if(gpst$NMEA[j] == "$GPRMC"){
-      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),NA,NA,as.character(gpst$i[j]))
+      ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),as.character(gpst$g[j]),NA,as.character(gpst$i[j]))
       out.gpst = rbind(out.gpst, ooo)
     }
 
@@ -100,8 +103,8 @@ for (i in file_list){
   # dat <- dat %>% mutate(GPSTIME = gsub(":","",GPSTIME3))
   # dat <- dat %>% select(-GPSTIME1,-GPSDATETIME,-GPSTIME3)
 
-  #### Remove GPRMB rows
-  dat <- dat %>% filter(!(NMEA %in% "$GPRMB"))
+  #### Remove unused NMEA rows
+  dat <- dat %>% filter(!(NMEA %in% c("$GPRMB","$GPGGA","$GPGLL","$GPVTG")))
 
 
   #### Fill down GPSTIME, GPSDATE, SPEED, HEADING and coordinate values
@@ -111,6 +114,9 @@ for (i in file_list){
   #### Can't use smartfill for GPSDATE; must switch to next date if GPSTIME rolls over 24 hours
   ### also needs to fill from down for initial rows if this is NA.
   dat$GPSDATE = as.character(dat$GPSDATE)
+  
+  # add leading zeros to GPS times < 100000
+  dat <- dat %>% mutate(GPSTIME = ifelse(nchar(GPSTIME)==5, paste0("0",GPSTIME), GPSTIME))
 
   ### first block:fill from down for initial rows if this is NA.
   for (j in 1:length(dat$GPSDATE)){
@@ -265,11 +271,26 @@ for (i in file_list){
                "DDLON",
                "SOURCE")]
 
+  
+  
+  ### additional formatting
+  dat$SPEED = round(as.numeric(dat$SPEED), digits = 1)
+  dat$SENSORVALUE = round(as.numeric(dat$SENSORVALUE), digits = 2)
+  dat$SIGNALSTRENGTH = round(as.numeric(dat$SIGNALSTRENGTH), digits = 4)
+  dat <- dat %>% relocate(SIGNALSTRENGTH, .after = last_col())
+  dat$CPUDATEANDTIME = as_datetime(dat$CPUDATEANDTIME)
+  dat$CPUDATEANDTIME = format(dat$CPUDATEANDTIME, "%a %b %d %H:%M:%S %Y")
+  
+  
   ###### change NAs to white space
   dat <- sapply(dat, as.character)
   dat[is.na(dat)] <- ""
 
 
+
+  
+  
+  
   dir.create(output_directory, recursive = TRUE, showWarnings = FALSE )
   write.csv(dat, file = paste0(output_directory,"/",gsub(".csv","",i),"_converted.csv"), row.names = F)
 
