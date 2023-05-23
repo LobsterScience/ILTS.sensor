@@ -413,10 +413,10 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
                     }
             }
 
-            if(is.na(seab.ind.0) | is.na(seab.ind.1))stop(paste0("No Date/Time alignment between ILTS_SENSOR and ILTS_TEMPERATURE tables for Trip:",set$Trip[1]," Set:",set$Setno[1]))
+            if(all(is.na(seab.ind.0)) | all(is.na(seab.ind.1)))stop(paste0("No Date/Time alignment between ILTS_SENSOR and ILTS_TEMPERATURE tables for Trip:",set$Trip[1]," Set:",set$Setno[1]))
 
 
-            if(!(is.na(seab.ind.0) | is.na(seab.ind.1))){
+            if(!(all(is.na(seab.ind.0)) | all(is.na(seab.ind.1)))){
 
               seabsub = seabf[c(seab.ind.0:seab.ind.1),]
 
