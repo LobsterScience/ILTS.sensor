@@ -322,7 +322,11 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
       if(nrow(trip_eson)==0){
         setref = unique(trip_seabf$SET_NO)
         warning(paste("No ILTS_SENSOR data found for Trip ID:",i,"!"), immediate. = TRUE)
-        }else{setref = unique(trip_eson$SET_NO)}
+      }else{
+          if(length(unique(trip_seabf$SET_NO))>length(unique(trip_eson$SET_NO))){
+            setref = unique(trip_seabf$SET_NO)
+          }else{setref = unique(trip_eson$SET_NO)}
+      }
       for(j in setref){
         if(cont){ #Condition fails if program exited
           set_eson <- esona %>% filter(TRIP_ID %in% i) %>% filter(SET_NO %in% j)
