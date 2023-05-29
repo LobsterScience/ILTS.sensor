@@ -413,9 +413,9 @@ if(!is.null(select.tows)){
                     seab.ind.0 = which(seabf$timestamp>set$timestamp[1]-lubridate::minutes(15))[1]
 
                     ## in case it is last tow of ILTS_TEMPERATURE
-                    if(is.null(select.tows) & max(which(seabf$tow == set_eson$tow[1])) == max(as.numeric(rownames(seabf)))){
+                    if(max(which(seabf$tow == set_eson$tow[1])) == max(as.numeric(rownames(seabf)))){
                     seab.ind.1 = max(as.numeric(rownames(seabf)))
-                    print(paste("Last tow of ILTS_TEMPERATURE data set for",years,"!"))
+                    if(is.null(select.tows)){print(paste("Last tow of ILTS_TEMPERATURE data set for",years,"!"))}
                     }else{
                     seab.ind.1 = which(seabf$timestamp>set$timestamp[length(set$timestamp)]+lubridate::minutes(15))[1]-1
                     }
