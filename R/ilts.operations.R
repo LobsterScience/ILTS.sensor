@@ -327,6 +327,14 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   seabf <- seabf %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
   seabf <- seabf %>% filter(!(tow %in% skiptows))
 
+  #### OR filter for specific tow selected by user
+if(!is.null(select.tow)){
+  esona <- esona %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
+  esona <- esona %>% filter(tow %in% select.tow)
+  seabf <- seabf %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
+  seabf <- seabf %>% filter(tow %in% select.tow)
+}  
+  
    ## create a logic to reference ILTS_TEMPERATURE trip and set instead if ILTS_SENSORS data is missing for any tows
   reftemp = FALSE
   if(length(unique(seabf$tow)) > length(unique(esona$tow))){reftemp = TRUE}
