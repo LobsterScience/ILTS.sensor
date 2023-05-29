@@ -219,7 +219,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, dummy.depth = NULL, divert.messages = FALSE){
+click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, select.tows = NULL, dummy.depth = NULL, divert.messages = FALSE){
 
   #Set up database server, user and password
   init.project.vars()
@@ -328,11 +328,11 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, d
   seabf <- seabf %>% filter(!(tow %in% skiptows))
 
   #### OR filter for specific tow selected by user
-if(!is.null(select.tow)){
+if(!is.null(select.tows)){
   esona <- esona %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
-  esona <- esona %>% filter(tow %in% select.tow)
+  esona <- esona %>% filter(tow %in% select.tows)
   seabf <- seabf %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
-  seabf <- seabf %>% filter(tow %in% select.tow)
+  seabf <- seabf %>% filter(tow %in% select.tows)
 }  
   
    ## create a logic to reference ILTS_TEMPERATURE trip and set instead if ILTS_SENSORS data is missing for any tows
