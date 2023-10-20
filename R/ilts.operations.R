@@ -81,7 +81,7 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
     esonar$primary[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME=="Primary")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "Headline" & esonar$TRANSDUCERNAME == "Primary")]
   }
 
-  ###for sets with no depths in seabf, use depth readings from HEADLINE, NBTE and wingspread(PRP) sensors, clickable depth will be whichever has most time range
+  ###for sets with no depths in seabf, use depth readings from HEADLINE, NBTE and wingspread(PRP) sensors, clickable depth line will combine depth data from all available of these sources
 #browser()
     if(all(is.na(set_seabf$DEPTHM))){
       #browser()
@@ -124,7 +124,7 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
     # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")]
     # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[4] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[4] & esonar$SENSORNAME == "DEPTH")]
     # 
-    ## code for choosing alternate depth based on most data points - don't delete yet
+    ## code for choosing specificesonar depth source based on most data points - don't delete yet
     # depth.opts = c(difftime((esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH"))$timestamp[length],
     #               esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH"),
     #               esonar %>% filter(TRANSDUCERNAME %in% "HEADLINE" & SENSORNAME %in% "DEPTH"))
@@ -259,7 +259,11 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
 
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
   esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
-
+  #the behaviour of date range queries from R to Oracle is inconsistent, if year in esona doesn't match that called by user, try reverse method:
+  if(length(unique(year(esona$GPSDATE)))==0 ||!(unique(year(esona$GPSDATE)) %in% years) ){
+    esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
+  }
+  
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -294,6 +298,10 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
 
   # pull in temperature data
   seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
+  if(length(unique(year(seabf$UTCDATE)))==0 ||!(unique(year(seabf$UTCDATE)) %in% years) ){
+    seabf = get.oracle.table(tn = paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
+  }
+  
   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]

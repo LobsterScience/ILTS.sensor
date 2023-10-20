@@ -9,6 +9,7 @@ click_touch(
   user = "",
   years = "",
   skiptows = NULL,
+  select.tows = NULL,
   dummy.depth = NULL,
   divert.messages = FALSE
 )

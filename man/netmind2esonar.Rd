@@ -5,8 +5,8 @@
 \title{This function converts survey tables recorded in netmind format to Esonar format}
 \usage{
 netmind2esonar(
- 
-    main_directory = "R:/Science/Population Ecology Division/Shared/!PED_Unit17_Lobster/Lobster Unit/Data & Code Files/ILTS Data/netmind_to_esonar"
+  main_directory =
+    "R:/Science/Population Ecology Division/Shared/!PED_Unit17_Lobster/Lobster Unit/Data & Code Files/ILTS Data/netmind_to_esonar"
 )
 }
 \arguments{

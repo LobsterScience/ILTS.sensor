@@ -8,7 +8,7 @@ marport2esonar2021(
   data_directory = file.path(bio.datadirectory, "bio.lobster", "data", "survey",
     "Marport 2021"),
   output_directory = file.path(data_directory, "Marport converted"),
-  correct.col.names = F,
+  correct.col.names = T,
   heading = "magnetic"
 )
 }
