@@ -262,6 +262,7 @@ dat <- dat %>% select(-`Sensor Location`)
 dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(opn  %in% NA, TRANSDUCERNAME, "HEADLINE"))
 dat <- dat %>% mutate(`Type of Data` = ifelse(opn  %in% NA, `Type of Data`, "OPN"))
 dat <- dat %>% mutate(Value = ifelse(opn  %in% NA, Value, opn))
+dat <- dat %>% mutate(Status = ifelse(opn  %in% NA, Status, "FILTERED"))
 dat <- dat %>% select(-opn)
 
 ##rename remaining columns
