@@ -43,7 +43,7 @@ for (i in 1:length(ex_file_list)){
 ## pull out MPMSD rows int separate table
   opntab <- ex.dat %>% filter(V5 %in% "OPN")
   opntab <- opntab %>% separate(V7, sep = "\\*", into = c("opn1","opn2"))
-   merg.dat <- opntab %>% select(1,2,7)
+   merg.dat <- opntab %>% select(1,2,4,7)
 
    
 ## remerge extracted headline data with main csv file. Then run code from marpot2esonar with modifcation to source headline from NMEA     
@@ -71,12 +71,12 @@ mar1 <-  mar1 %>% mutate(Time = Time1) %>% select(-Time1)
 
 ## merge in extracted headline data using GPRMC and GPsTime
 merg.dat <- merg.dat %>% mutate(V1 = "$GPRMC")
-colnames(merg.dat) = c("NMEA","a","opn")
+colnames(merg.dat) = c("NMEA","a","opn.node","opn")
 mar2 <- left_join(mar1,merg.dat)
 #############
 
 #### Extract NMEA data into it's own table
-gpst <- mar2 %>% select(Time,NMEA,a,b,c,d,e,f,g,h,i,j,k,l,m,n,opn)
+gpst <- mar2 %>% select(Time,NMEA,a,b,c,d,e,f,g,h,i,j,k,l,m,n,opn.node,opn)
 
 NMEA <- gpst$NMEA
 
@@ -94,7 +94,7 @@ for (j in 1:length(NMEA)){
   #   }
   
   if(gpst$NMEA[j] == "$GPRMC"){
-    ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),as.character(gpst$g[j]),NA,as.character(gpst$i[j]),as.character(gpst$opn[j]))
+    ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),as.character(gpst$g[j]),NA,as.character(gpst$i[j]),as.character(gpst$opn.node[j]),as.character(gpst$opn[j]))
     out.gpst = rbind(out.gpst, ooo)
   }
   
@@ -109,14 +109,14 @@ out.gpst = as.data.frame(out.gpst)
 out.gpst <- out.gpst %>% rename(Time = V1, NMEA = V2)
 
 #### Make table with just sensor data
-sensort <- mar2 %>% select(!c(a:n,opn))
+sensort <- mar2 %>% select(!c(a:n,opn.node,opn))
 
 #### Recombine sensor and NMEA data into useful table
 dat <- left_join(sensort,out.gpst)
 
 #### clean up column headers
 dat <- dat %>% rename(CPUDATEANDTIME =Time, GPSTIME = V3, LATITUDE = V4, LONGITUDE = V5)
-dat <- dat %>% rename(Track_made_good_deg_true = V6, Track_made_good_deg_magnetic = V7, Speed_knots = V8, Speed_over_ground_kph = V9, GPSDATE = V10, opn = V11)
+dat <- dat %>% rename(Track_made_good_deg_true = V6, Track_made_good_deg_magnetic = V7, Speed_knots = V8, Speed_over_ground_kph = V9, GPSDATE = V10, opn.node = V11, opn = V12)
 dat$CPUDATEANDTIME = as_datetime(dat$CPUDATEANDTIME)
 
 
@@ -260,12 +260,13 @@ dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(`Sensor Location` %in% "10", "HEAD
 dat <- dat %>% select(-`Sensor Location`)
 
 ### convert OPN values back to sensor reading format
-dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(opn  %in% NA, TRANSDUCERNAME, "HEADLINE"))
+dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(opn.node  %in% "11", "TRAWLEXPLORER",
+                                              ifelse(opn.node  %in% "10", "Headline",TRANSDUCERNAME)) )
 dat <- dat %>% mutate(`Type of Data` = ifelse(opn  %in% NA, `Type of Data`, "OPN"))
 dat <- dat %>% mutate(Value = ifelse(opn  %in% NA, Value, opn))
 dat <- dat %>% mutate(Status = ifelse(opn  %in% NA, Status, "FILTERED"))
 dat <- dat %>% select(-opn)
-
+dat <- dat %>% select(-opn.node)
 ##rename remaining columns
 dat <- dat %>% rename(SENSORNAME = `Type of Data`,SENSORVALUE=Value,VALIDITY =Status,SIGNALSTRENGTH=SNR,SPEED = Speed_knots)
 
