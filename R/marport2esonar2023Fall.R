@@ -261,7 +261,7 @@ dat <- dat %>% select(-`Sensor Location`)
 
 ### convert OPN values back to sensor reading format
 dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(opn.node  %in% "11", "TRAWLEXPLORER",
-                                              ifelse(opn.node  %in% "10", "Headline",TRANSDUCERNAME)) )
+                                              ifelse(opn.node  %in% "10", "HEADLINE",TRANSDUCERNAME)) )
 dat <- dat %>% mutate(`Type of Data` = ifelse(opn  %in% NA, `Type of Data`, "OPN"))
 dat <- dat %>% mutate(Value = ifelse(opn  %in% NA, Value, opn))
 dat <- dat %>% mutate(Status = ifelse(opn  %in% NA, Status, "FILTERED"))

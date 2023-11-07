@@ -160,7 +160,9 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
 
   # for future years, assume names are same as 2021, change this if needed:
   if(as.numeric(years)>2021){
-    esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
+    #esonar$primary[which(esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE")]
+    ### in Fall 2023, primary (Opening) began coming from TRAWLEXPLORER:OPN (occasional values from HEADLINE:SENSORDTB but are probably erroneous; clicktouch should automatically filter these out)
+    esonar$primary[which((esonar$SENSORNAME == 'OPN' & esonar$TRANSDUCERNAME=="TRAWLEXPLORER") | (esonar$SENSORNAME == 'SENSORDTB' & esonar$TRANSDUCERNAME=="HEADLINE"))] = esonar$SENSORVALUE[which((esonar$SENSORNAME == "OPN" & esonar$TRANSDUCERNAME == "TRAWLEXPLORER") | (esonar$SENSORNAME == "SENSORDTB" & esonar$TRANSDUCERNAME == "HEADLINE"))]
     esonar$wingspread[which(esonar$SENSORNAME == 'DISTANCE' & esonar$TRANSDUCERNAME=="WINGSPREAD")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DISTANCE" & esonar$TRANSDUCERNAME == "WINGSPREAD")]
   }
 
