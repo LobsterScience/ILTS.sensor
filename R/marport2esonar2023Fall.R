@@ -251,10 +251,11 @@ if(heading %in% "magnetic"){
 dat <- dat %>% select(-`Noise Floor`,-Periode,-RxKey, -Speed_over_ground_kph, -NMEA)
 
 #### create TRANSDUCERNAME values
-dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(`Sensor Location` %in% c("10","11"), "HEADLINE",
-                                              ifelse(`Sensor Location` %in% c("12","23","26"), "WINGSPREAD",
-                                                     ifelse(`Sensor Location` %in% "171", "HYDROPHONE",
-                                                            ifelse(`Sensor Location` %in% "8","GRID",`Sensor Location`)))))
+dat <- dat %>% mutate(TRANSDUCERNAME = ifelse(`Sensor Location` %in% "10", "HEADLINE",
+                                              ifelse(`Sensor Location` %in% "11", "TRAWLEXPLORER",
+                                                     ifelse(`Sensor Location` %in% c("12","23","26"), "WINGSPREAD",
+                                                            ifelse(`Sensor Location` %in% "171", "HYDROPHONE",
+                                                                   ifelse(`Sensor Location` %in% "8","GRID",`Sensor Location`))))) )
 
 dat <- dat %>% select(-`Sensor Location`)
 
