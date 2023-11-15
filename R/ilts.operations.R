@@ -86,14 +86,14 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
     if(all(is.na(set_seabf$DEPTHM))){
       #browser()
       depth.opts <<- c()
-      
+
       for(i in unique(esonar$TRANSDUCERNAME)){
-        
+
         trans.tab = esonar %>% filter(TRANSDUCERNAME %in% i & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
         if(nrow(trans.tab)>0){
           depth.opts <<- c(depth.opts,i)
         }
-        
+
         }
     # PRP = esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
     # NBTE = esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH") %>% filter(!(SENSORVALUE %in% NA))
@@ -110,11 +110,11 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
     # if(length(WINGSPREADrange)==0){WINGSPREADrange=0}
 
     #depth.range.max = which.max(c(PRPrange, NBTErange, HEADLINErange, WINGSPREADrange))
-      
+
     depth.alts = NULL  ### for netmensuration alternate graph options if wanted
-    
+
     esonar$sensor_depth[which(esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$SENSORNAME == "DEPTH")]
-    
+
 # for(i in 1:length(depth.opts)){
 #   esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.opts[i] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.opts[i] & esonar$SENSORNAME == "DEPTH")]
 # }
@@ -123,7 +123,7 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
     # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[2] & esonar$SENSORNAME == "DEPTH")]
     # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[3] & esonar$SENSORNAME == "DEPTH")]
     # esonar$sensor_depth[which(esonar$TRANSDUCERNAME == depth.alts[4] & esonar$SENSORNAME == "DEPTH")] = esonar$SENSORVALUE[which(esonar$TRANSDUCERNAME == depth.alts[4] & esonar$SENSORNAME == "DEPTH")]
-    # 
+    #
     ## code for choosing specificesonar depth source based on most data points - don't delete yet
     # depth.opts = c(difftime((esonar %>% filter(TRANSDUCERNAME %in% "PRP" & SENSORNAME %in% "DEPTH"))$timestamp[length],
     #               esonar %>% filter(TRANSDUCERNAME %in% "NBTE" & SENSORNAME %in% "DEPTH"),
@@ -245,6 +245,8 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
     current = read.csv(file.path(pkg.env$manual.archive, paste("clicktouchdown_", user, ".csv", sep="")))
     current$set.no = as.character(current$set.no)
     current$trip = as.character(current$trip)
+    current$start = paste(current$startdate,current$starttime)
+    current$end = paste(current$enddate,current$endtime)
   }else{
     current=NULL
   }
@@ -265,7 +267,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
   if(length(unique(year(esona$GPSDATE)))==0 ||!(unique(year(esona$GPSDATE)) %in% years) ){
     esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
   }
-  
+
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -303,7 +305,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
   if(length(unique(year(seabf$UTCDATE)))==0 ||!(unique(year(seabf$UTCDATE)) %in% years) ){
     seabf = get.oracle.table(tn = paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
   }
-  
+
   #rebuild datetime column as it is incorrect and order
   seabf$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(seabf$UTCDATE)), seabf$UTCTIME, sep=" "), tz="UTC" )
   seabf = seabf[ order(seabf$timestamp , decreasing = FALSE ),]
@@ -315,22 +317,22 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
     # if(length(yind)>0)seabf = seabf[yind,]
     if(length(seabf$timestamp)==0)warning("No ILTS_TEMPERATURE data found for your year selection!", immediate. = TRUE)
   }
-  
-###### this code block can be put anywhere, but should be before trip/set looping starts to avoid repeating query  
+
+###### this code block can be put anywhere, but should be before trip/set looping starts to avoid repeating query
   ## bring in additional tow info for user from iltssets_mv (gear, tow length), will add to interactive graph later
   new_con <- ROracle::dbConnect(drv = DBI::dbDriver("Oracle"),  username = oracle.username, password = oracle.password, dbname = "PTRAN")
-  addit.tow.info <<- ROracle::dbGetQuery(new_con, 
+  addit.tow.info <<- ROracle::dbGetQuery(new_con,
                                       "SELECT DISTINCT trip_id, set_no, gear, board_date, station,
                                 round(6371 * 2 * asin(sqrt(power(sin((set_lat - abs(haul_lat)) * 3.1415926 / 180 / 2), 2) + cos(set_lat * 3.1415926 / 180) * cos(abs(haul_lat) * 3.1415926 / 180) * power(sin((set_long - haul_long) * 3.1415926 / 180 / 2), 2))), 2) distancekm,
                                 round(3440.065 * 2 * asin(sqrt(power(sin((set_lat - abs(haul_lat)) * 3.1415926 / 180 / 2), 2) + cos(set_lat * 3.1415926 / 180) * cos(abs(haul_lat) * 3.1415926 / 180) * power(sin((set_long - haul_long) * 3.1415926 / 180 / 2), 2))), 2) distancenm
-                            FROM lobster.iltssets_mv 
+                            FROM lobster.iltssets_mv
                             WHERE board_date > to_date('2014-09-01','YYYY-MM-DD')
                             AND haulccd_id = 1
                             order by board_date,
                                 trip_id,
                                 set_no")
-###### 
-  
+######
+
   ## remove tows selected by user
   esona <- esona %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
   esona <- esona %>% filter(!(tow %in% skiptows))
@@ -343,8 +345,8 @@ if(!is.null(select.tows)){
   esona <- esona %>% filter(tow %in% select.tows)
   seabf <- seabf %>% mutate(tow = paste0(TRIP_ID,":",SET_NO))
   seabf <- seabf %>% filter(tow %in% select.tows)
-}  
-  
+}
+
    ## create a logic to reference ILTS_TEMPERATURE trip and set instead if ILTS_SENSORS data is missing for any tows
   reftemp = FALSE
   if(length(unique(seabf$tow)) > length(unique(esona$tow))){reftemp = TRUE}
@@ -373,7 +375,7 @@ if(!is.null(select.tows)){
             warning(paste("No ILTS_SENSOR data found for TRIP ID:",set_seabf$TRIP_ID[1],"Set:",set_seabf$SET_NO[1],"!"), immediate. = TRUE)
           }
           ### filter for only raw sensor values (or "A" if esonar) and if none, use seabf as set
-          set_eson <- set_eson %>% filter(VALIDITY %in% c("A","RAW",1000))
+          set_eson <- set_eson %>% filter(VALIDITY %in% c("A","RAW",1000) | SENSORNAME  %in% "OPN")
           using.seabf.for.set = FALSE
           if(nrow(set_eson)==0 | nrow(set_eson %>% filter(!(SENSORVALUE %in% NA)))==0){
             using.seabf.for.set = TRUE
