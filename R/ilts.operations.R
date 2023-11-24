@@ -603,10 +603,17 @@ if(!is.null(select.tows)){
             }
 
 
-#browser()
-            ### filter Doorspread values for minimum and maximum spread and filter headline distance for positive values
-            mergset <- mergset %>% mutate(wingspread = ifelse(wingspread>20,20,
-                                                              ifelse(wingspread<5,5,wingspread)))
+            ### filter Doorspread values for minimum and maximum spread and filter based on gear type
+            tow.info <- addit.tow.info %>% filter(TRIP_ID %in% set$Trip & SET_NO %in% set$Setno)
+            if(tow.info$GEAR %in% "280 BALLOON"){
+              mergset <- mergset %>% mutate(wingspread = ifelse(wingspread>30,30,
+                                                                ifelse(wingspread<5,5,wingspread)))
+            }
+            if(tow.info$GEAR %in% "NEST"){
+              mergset <- mergset %>% mutate(wingspread = ifelse(wingspread>20,20,
+                                                                ifelse(wingspread<5,5,wingspread)))
+            }
+
             mergset$doorspread = mergset$wingspread
 
             #Try to recover from user termination in order to write the current stat list to file
