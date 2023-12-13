@@ -544,7 +544,7 @@ if(!is.null(select.tows)){
               tdif.max=32, #set based on longest tow encountered to date
               time.gate=time.gate,
               depth.min=3,
-              depth.range=c(-20,30),
+              depth.range=c(-20,90),
               depthproportion=0.6,
               eps.depth=.5, ##Must set this low due to shallow tows resulting in small depth variability
               smooth.windowsize=5,
@@ -566,7 +566,7 @@ if(!is.null(select.tows)){
             #Fix missing position data by repeating the last know position. No NA positions allowed in bottom.contact function
             #BUT, running tows with no esonar data means no coordinates, so in these cases insert a dummy coordinate
             #AND if depth data come from seabf and are too sparse, use loess smoothing instead to avoid too many duplicate values
-#browser()
+
              if(any(!is.na(set_seabf$depth)) & nrow(set_seabf)/nrow(set_eson) < 0.05){
               merg_loess = loess(depth~as.numeric(timestamp), data=mergset, span = 0.5)
               merg_depth = predict(merg_loess, data.frame(timestamp = mergset$timestamp))
@@ -600,7 +600,10 @@ if(!is.null(select.tows)){
                 }
               }
 
-            }
+              }
+
+            ###filter out any depth = 0 rows:
+            mergset <- mergset %>% filter(depth>0)
 
 
             ### filter Doorspread values for minimum and maximum spread and filter based on gear type
@@ -692,7 +695,7 @@ if(!is.null(select.tows)){
                 }
               ##### if bc is still NULL, list warnings with possible reasons
                 if ( is.null(bc) || ( !is.null(bc$res) && ( ( !is.finite(bc$res$t0 ) || !is.finite(bc$res$t1 ) ) ) )) {
-                  warning(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Touchdown metrics could not be calculated. Possible reason: tow may be too shallow, resulting in too little variation in depth values; check that sd(mergset$depth) > bcp$eps.depth, currently function tries reducing eps.depth as low as ",eps.depth.final," before quitting", sep = ""), immediate. = TRUE)
+                  warning(paste("Set:",unique(na.omit(set$Setno))," Trip:", unique(na.omit(set$Trip)), " Touchdown metrics could not be calculated. Possible reason: tow may be too shallow or too deep, resulting in too little or too much variation in depth values; if suspect too shallow, check that sd(mergset$depth) > bcp$eps.depth, currently function tries reducing eps.depth as low as ",eps.depth.final," before quitting. If suspect too deep, try increasing bcp$depth.range (currently set at:",bcp$depth.range[1]," to ",bcp$depth.range[2],")", sep = ""), immediate. = TRUE)
                 }
 
               },
