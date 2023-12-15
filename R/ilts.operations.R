@@ -546,7 +546,7 @@ if(!is.null(select.tows)){
               depth.min=3,
               depth.range=c(-20,90),
               depthproportion=0.6,
-              eps.depth=.5, ##Must set this low due to shallow tows resulting in small depth variability
+              eps.depth=.4, ##Must set this low due to shallow tows resulting in small depth variability
               smooth.windowsize=5,
               modal.windowsize=5,
               noisefilter.trim=0.025,
