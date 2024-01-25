@@ -544,7 +544,7 @@ if(!is.null(select.tows)){
               tdif.max=32, #set based on longest tow encountered to date
               time.gate=time.gate,
               depth.min=3,
-              depth.range=c(-20,90),
+              depth.range=c(-40,90),#amc changed from -20 to -40 to pick up some tows that touch down was missed Jan 25 2024
               depthproportion=0.6,
               eps.depth=.4, ##Must set this low due to shallow tows resulting in small depth variability
               smooth.windowsize=5,
