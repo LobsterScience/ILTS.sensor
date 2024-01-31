@@ -190,7 +190,7 @@ esonar2df = function(esonar = NULL, years=NULL, set_seabf=NULL) {
   return(esonar)
 }
 
-#' @title  get.acoustic.releases
+#' @title  get.oracle.table
 #' @description  Get data from Oracle Database table
 #' @import ROracle DBI
 #' @param tn tablename to get
@@ -221,7 +221,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, select.tows = NULL, dummy.depth = NULL, divert.messages = FALSE){
+click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, select.tows = NULL, dummy.depth = NULL, divert.messages = FALSE, bcp ){
 
   #Set up database server, user and password
   init.project.vars()
@@ -295,10 +295,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
     # if(length(yind)>0)esona = esona[yind,]
     if(length(esona$timestamp)==0)warning("No ILTS_SENSOR data found for your year selection!", immediate. = TRUE)
   }
-  # mini = get.oracle.table(tn = "FRAILC.MINILOG_TEMP")
-  # #rebuild datetime column as it is incorrect and order
-  # mini$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(mini$TDATE)), mini$TIME, sep=" "), tz="UTC" )
-  # mini = mini[ order(mini$timestamp , decreasing = FALSE ),]
+
 
   # pull in temperature data
   seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
@@ -489,7 +486,8 @@ if(!is.null(select.tows)){
             seabsub$depth[which(seabsub$depth <= 2)] = NA
 
             #Merge sensor data.
-            mergset = merge(seabsub, set, "timestamp", all = TRUE)
+            if(all(is.na(seabsub$depth))) mergset = set #if no depth in temp file dont merge amc Jan 31 2023
+            if(any(!is.na(seabsub$depth))) mergset = merge(seabsub, set, "timestamp", all = TRUE)
             #Build the full, unbroken timeseries and merge
             timestamp = data.frame(seq(min(mergset$timestamp), max(mergset$timestamp), 1))
             names(timestamp) = c("timestamp")
@@ -530,6 +528,7 @@ if(!is.null(select.tows)){
 
             # Build the variables need for the proper execution of the bottom contact function from
             # the netmensuration package
+            
             bcp = list(
               set.no = unique(na.omit(set$Setno)),
               trip = unique(na.omit(mergset$Trip)),
