@@ -218,6 +218,9 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @param years single or vector of years to process
 #' @param skiptows skip specific tows specified by TRIP_ID:SET (example: skiptows = '100054289:51')
 #' @param no.depth if real depth data is insufficient but still want to check headline distance and wingspread, run specified tows with dummy depth (example: no.depth = '100054289:51')
+#' @param fixed_times if you want to specify specific start and end times for a specific tow; this will default to not run netmensuration analyses but will produce clickable plot. These times need to be of the form c('15:00:00','15:20:00') and in AST.
+#' @param use_local will default to bio.lobster::lobster.db('survey') data if T
+#' @param skip.analyses if T will skip the analyses in netmensuration::bottom_contact and just produce the clickable plot
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
@@ -549,7 +552,7 @@ if(!is.null(select.tows)){
                 t1=as.POSIXct(paste(as.Date(time.gate[[1]]), fixed_times[2]),format = "%Y-%m-%d %H:%M:%S"))
                   # added so we can set times AMC Feb 1, 2024
             }
-            
+
             # Build the variables need for the proper execution of the bottom contact function from
             # the netmensuration package
             bcp = list(

@@ -11,7 +11,10 @@ click_touch(
   skiptows = NULL,
   select.tows = NULL,
   dummy.depth = NULL,
-  divert.messages = FALSE
+  divert.messages = FALSE,
+  fixed_times = NULL,
+  use_local = F,
+  skip.analyses = T
 )
 }
 \arguments{
@@ -22,6 +25,12 @@ click_touch(
 \item{years}{single or vector of years to process}
 
 \item{skiptows}{skip specific tows specified by TRIP_ID:SET (example: skiptows = '100054289:51')}
+
+\item{fixed_times}{if you want to specify specific start and end times for a specific tow; this will default to not run netmensuration analyses but will produce clickable plot. These times need to be of the form c('15:00:00','15:20:00') and in AST.}
+
+\item{use_local}{will default to bio.lobster::lobster.db('survey') data if T}
+
+\item{skip.analyses}{if T will skip the analyses in netmensuration::bottom_contact and just produce the clickable plot}
 
 \item{no.depth}{if real depth data is insufficient but still want to check headline distance and wingspread, run specified tows with dummy depth (example: no.depth = '100054289:51')}
 }
