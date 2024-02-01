@@ -22,8 +22,8 @@ init.project.vars = function() {
     assign('manual.archive', bio.datadirectory.ilts , pkg.env)
   }
   else{
+    print('CHOOSE YOUR FOLDER!!')
     assign('manual.archive', gWidgets2::gfile(text = "Select project work directory", type = "selectdir"), pkg.env)
-
   }
 
   #Take from snowcrab users .Rprofile.site
@@ -221,7 +221,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, select.tows = NULL, dummy.depth = NULL, divert.messages = FALSE, bcp ){
+click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, select.tows = NULL, dummy.depth = NULL, divert.messages = FALSE, fixed_times=NULL, use_local=F,skip.analyses=T){
 
   #Set up database server, user and password
   init.project.vars()
@@ -261,11 +261,16 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
 
   plotdata = F #Alternative plotting that we do not require
 
+  if(!use_local){
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
   esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
   #the behaviour of date range queries from R to Oracle is inconsistent, if year in esona doesn't match that called by user, try reverse method:
   if(length(unique(year(esona$GPSDATE)))==0 ||!(unique(year(esona$GPSDATE)) %in% years) ){
     esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
+  }
+  } else {
+    lobster.db('survey')
+    esona = subset(ILTSSensor, year(GPSDATE) %in% years)
   }
 
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
@@ -298,9 +303,13 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
 
 
   # pull in temperature data
+  if(!use_local){
   seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
   if(length(unique(year(seabf$UTCDATE)))==0 ||!(unique(year(seabf$UTCDATE)) %in% years) ){
     seabf = get.oracle.table(tn = paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
+  }
+  } else{
+    seabf = subset(ILTSTemp, year(UTCDATE) %in% years)
   }
 
   #rebuild datetime column as it is incorrect and order
@@ -317,6 +326,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
 
 ###### this code block can be put anywhere, but should be before trip/set looping starts to avoid repeating query
   ## bring in additional tow info for user from iltssets_mv (gear, tow length), will add to interactive graph later
+  if(!use_local){
   new_con <- ROracle::dbConnect(drv = DBI::dbDriver("Oracle"),  username = oracle.username, password = oracle.password, dbname = "PTRAN")
   addit.tow.info <<- ROracle::dbGetQuery(new_con,
                                       "SELECT DISTINCT trip_id, set_no, gear, board_date, station,
@@ -328,6 +338,16 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
                             order by board_date,
                                 trip_id,
                                 set_no")
+  } else{
+    sc = surveyCatch %>% select(c(TRIP_ID,SET_NO,HAULCCD_ID,GEAR,BOARD_DATE,STATION, SET_LAT,SET_LONG,HAUL_LAT,HAUL_LONG)) %>% distinct()
+    addit.tow.info = subset(sc,BOARD_DATE>as.POSIXct('2014-09-01','YYYY-MM-DD') & HAULCCD_ID==1)
+    calcD = function(row){
+      round(distGeo(c(as.numeric(row[1]),as.numeric(row[2])),c(as.numeric(row[3]),as.numeric(row[4])))/1000,2)
+       }
+    addit.tow.info$DISTANCEKM = apply(addit.tow.info[,c('SET_LONG','SET_LAT','HAUL_LONG','HAUL_LAT')],1,calcD)
+    addit.tow.info$DISTANCENM = round(addit.tow.info$DISTANCEKM * 0.539956803,2)
+    addit.tow.info <<- addit.tow.info
+  }
 ######
 
   ## remove tows selected by user
@@ -522,13 +542,16 @@ if(!is.null(select.tows)){
               }
             }
             #Find deepest point and extend possible data from that out to 20min on either side
-            aredown = mergset$timestamp[which(mergset$depth == max(mergset$depth, na.rm = T))]
+            aredown = mergset$timestamp[which(mergset$depth == max(mergset$depth, na.rm = T))][1]
             time.gate =  list( t0=as.POSIXct(aredown)-lubridate::dminutes(20), t1=as.POSIXct(aredown)+lubridate::dminutes(20) )
-
-
+            if(!is.null(select.tows) & !is.null(fixed_times)){
+              time.gate = list(t0=as.POSIXct(paste(as.Date(time.gate[[1]]), fixed_times[1]),format = "%Y-%m-%d %H:%M:%S"),
+                t1=as.POSIXct(paste(as.Date(time.gate[[1]]), fixed_times[2]),format = "%Y-%m-%d %H:%M:%S"))
+                  # added so we can set times AMC Feb 1, 2024
+            }
+            
             # Build the variables need for the proper execution of the bottom contact function from
             # the netmensuration package
-            
             bcp = list(
               set.no = unique(na.omit(set$Setno)),
               trip = unique(na.omit(mergset$Trip)),
@@ -550,7 +573,10 @@ if(!is.null(select.tows)){
               modal.windowsize=5,
               noisefilter.trim=0.025,
               noisefilter.target.r2=0.85,
-              noisefilter.quants=c(0.025, 0.975))
+              noisefilter.quants=c(0.025, 0.975),
+              fixed_times=ifelse(!is.null(fixed_times),T,F),
+              skip_analyses=ifelse(!is.null(fixed_times) | skip.analyses,T,F)
+              )
 #browser()
 
             bcp = netmensuration::bottom.contact.parameters( bcp ) # add other default parameters .. not specified above
