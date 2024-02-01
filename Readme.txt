@@ -11,7 +11,7 @@ To Install:
         ##(version list here: https://groups.google.com/g/r-inla-discussion-group/c/c0__KycX1j4): 
 	## remotes::install_version("INLA", version="20.06.29",repos=c(getOption("repos"),
 	## INLA="https://inla.r-inla-download.org/R/testing"), dep=TRUE)
-	install_github("jakeelement/netmensuration")
+	install_github("LobsterScience/netmensuration")
 	install.packages("dplyr")
 	install.packages("tidyr")
 	install_github("LobsterScience/ILTS.sensor", INSTALL_opts=c("--no-multiarch"))
