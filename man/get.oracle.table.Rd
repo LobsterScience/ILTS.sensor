@@ -2,7 +2,7 @@
 % Please edit documentation in R/ilts.operations.R
 \name{get.oracle.table}
 \alias{get.oracle.table}
-\title{get.acoustic.releases}
+\title{get.oracle.table}
 \usage{
 get.oracle.table(
   tn = "",
