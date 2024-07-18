@@ -1,7 +1,7 @@
 #' @title marport2esonar2023Fall
-#' @description An update from the older function for converting marport data to esonar format.Includes merging of extracted NMEA files for Headline:OPN data.
-#' @param main_data_directory is file path to where main unconverted Marport files are stored.
-#' @param extract_data_directory is file path where extracted NMEA files with Headline:OPN data are stored.
+#' @description An update from the older function for converting marport data to esonar format.Includes merging of extracted NMEA files for Headline:OPN data.MAIN DATA (MARPORT) AND CORRESPONDING EXTRACTED DATA (NMEA) FILES MUST BE STORED IN SEPARATE FOLDERS AND IN THE SAME ORDER TO USE THIS FUNCTION!
+#' @param main_data_directory is file path to where main unconverted Marport files are stored.THESE MUST BE IN THE SAME ORDER IN THE FOLDER AS THEIR CORRESPONDING NMEA FILES!
+#' @param extract_data_directory is file path where extracted NMEA files with Headline:OPN data are stored. THESE MUST BE IN THE SAME ORDER IN THE FOLDER AS THEIR CORRESPONDING MARPORT FILES!
 #' @param output_directory is file path to create directory where converted data will be stored.
 #' @param correct.col.names 2021 Marport data had incorrect column headers, if this problem is not resolved in later outputs, use correct.col.names=T to correct column names (function will override to T if 2021 data is being run)
 #' @param heading chooses whether to use "true" or "magnetic" heading. Default = "magnetic"
@@ -26,7 +26,7 @@ ex_file_list <- list.files(path=extract_data_directory)
 main_file_list <- list.files(path = main_data_directory)
 
 for (i in 1:length(ex_file_list)){
-  
+
   ex <- read.csv(file.path(extract_data_directory,"/",ex_file_list[i]), header = F)
 
   ex.dat <- ex %>% filter(V1  %in% "$GPRMC" |  (V1 %in% c("$MPMTW","$MPMSD") & V5  %in% "OPN") )
@@ -45,8 +45,8 @@ for (i in 1:length(ex_file_list)){
   opntab <- opntab %>% separate(V7, sep = "\\*", into = c("opn1","opn2"))
    merg.dat <- opntab %>% select(1,2,4,7)
 
-   
-## remerge extracted headline data with main csv file. Then run code from marpot2esonar with modifcation to source headline from NMEA     
+
+## remerge extracted headline data with main csv file. Then run code from marpot2esonar with modifcation to source headline from NMEA
 
 file = file.path(main_data_directory,main_file_list[i])
 ncol <- max(count.fields(file, sep = ","))
@@ -87,22 +87,22 @@ for (j in 1:length(NMEA)){
   #     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$b[j]),as.character(gpst$d[j]), NA,NA,NA,NA,NA)
   #     out.gpst = rbind(out.gpst, ooo)
   #   }
-  
+
   #   if(gpst$NMEA[j] == "$GPGLL"){
   #     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$e[j]),as.character(gpst$a[j]),as.character(gpst$c[j]), NA,NA,NA,NA,NA)
   #     out.gpst = rbind(out.gpst, ooo)
   #   }
-  
+
   if(gpst$NMEA[j] == "$GPRMC"){
     ooo = cbind(gpst$Time[j],gpst$NMEA[j],as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$h[j]),as.character(as.numeric(as.character(gpst$h[j]))+as.numeric(as.character(gpst$j[j]))),as.character(gpst$g[j]),NA,as.character(gpst$i[j]),as.character(gpst$opn.node[j]),as.character(gpst$opn[j]))
     out.gpst = rbind(out.gpst, ooo)
   }
-  
+
   #   if(gpst$NMEA[j] == "$GPVTG"){
   #     ooo = cbind(gpst$Time[j],gpst$NMEA[j],NA,NA,NA,as.character(gpst$a[j]),as.character(gpst$c[j]),as.character(gpst$e[j]),as.character(gpst$g[j]),NA )
   #     out.gpst = rbind(out.gpst, ooo)
   #   }
-  
+
 }
 
 out.gpst = as.data.frame(out.gpst)
@@ -165,7 +165,7 @@ for (j in 1:length(dat$GPSDATE)){
                                            substr(parse_date(paste0("0",as.character(dat$GPSDATE[(j-1)])),format = "%d%m%y")+1,6,7),
                                            substr(parse_date(paste0("0",as.character(dat$GPSDATE[(j-1)])),format = "%d%m%y")+1,3,4))
                                    ),
-                                   
+
                                    paste0(day(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1),
                                           substr(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1,6,7),
                                           substr(parse_date(as.character(dat$GPSDATE[(j-1)]),format = "%d%m%y")+1,3,4)
