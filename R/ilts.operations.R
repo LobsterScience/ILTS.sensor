@@ -266,11 +266,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
 
   if(!use_local){
   #Pull in the sensor data, this will be formatted and looped thru by trip then set.
-  esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
-  #the behaviour of date range queries from R to Oracle is inconsistent, if year in esona doesn't match that called by user, try reverse method:
-  if(length(unique(year(esona$GPSDATE)))==0 ||!(unique(year(esona$GPSDATE)) %in% years) ){
-    esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE GPSDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
-  }
+  esona = get.oracle.table(tn = paste0("LOBSTER.ILTS_SENSORS WHERE EXTRACT(YEAR FROM GPSDATE) = ",years))
   } else {
     lobster.db('survey')
     esona = subset(ILTSSensor, year(GPSDATE) %in% years)
@@ -307,10 +303,7 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
 
   # pull in temperature data
   if(!use_local){
-  seabf = get.oracle.table(tn =  paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years,"','YYYY') and to_date('",years+1,"','YYYY')"))
-  if(length(unique(year(seabf$UTCDATE)))==0 ||!(unique(year(seabf$UTCDATE)) %in% years) ){
-    seabf = get.oracle.table(tn = paste0("LOBSTER.ILTS_TEMPERATURE WHERE UTCDATE between to_date('",years-1,"','YYYY') and to_date('",years,"','YYYY')"))
-  }
+    seabf = get.oracle.table(tn = paste0("LOBSTER.ILTS_TEMPERATURE WHERE EXTRACT(YEAR FROM UTCDATE) = ",years))
   } else{
     seabf = subset(ILTSTemp, year(UTCDATE) %in% years)
   }
