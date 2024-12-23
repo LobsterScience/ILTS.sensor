@@ -8,6 +8,7 @@ click_touch(
   update = FALSE,
   user = "",
   years = "",
+  months = NULL,
   skiptows = NULL,
   select.tows = NULL,
   dummy.depth = NULL,

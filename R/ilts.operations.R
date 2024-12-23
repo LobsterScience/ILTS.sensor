@@ -224,7 +224,7 @@ get.oracle.table = function(tn = "",server = pkg.env$oracle.server, user =pkg.en
 #' @import netmensuration lubridate
 #' @return list of lists. Format (top to bottom) year-set-data
 #' @export
-click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, select.tows = NULL, dummy.depth = NULL, divert.messages = FALSE, fixed_times=NULL, use_local=F,skip.analyses=T){
+click_touch = function(update = FALSE, user = "", years = "", months = NULL, skiptows = NULL, select.tows = NULL, dummy.depth = NULL, divert.messages = FALSE, fixed_times=NULL, use_local=F,skip.analyses=T){
 
   #Set up database server, user and password
   init.project.vars()
@@ -272,6 +272,11 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
     esona = subset(ILTSSensor, year(GPSDATE) %in% years)
   }
 
+
+  if(!is.null(months)){
+    esona <- esona %>% dplyr::filter(month(GPSDATE) %in% months)
+  }
+
   esona$GPSTIME[which(nchar(esona$GPSTIME)==5)] = paste("0", esona$GPSTIME[which(nchar(esona$GPSTIME)==5)], sep="")
   esona$timestamp = lubridate::ymd_hms(paste(as.character(lubridate::date(esona$GPSDATE)), esona$GPSTIME, sep=" "), tz="UTC" )
   esona = esona[ order(esona$timestamp , decreasing = FALSE ),]
@@ -317,9 +322,13 @@ click_touch = function(update = FALSE, user = "", years = "", skiptows = NULL, s
      years = as.character(years)
     # yind = which(as.character(lubridate::year(seabf$timestamp)) %in% years)
     # if(length(yind)>0)seabf = seabf[yind,]
-    if(length(seabf$timestamp)==0)warning("No ILTS_TEMPERATURE data found for your year selection!", immediate. = TRUE)
   }
+  if(length(seabf$timestamp)==0)warning("No ILTS_TEMPERATURE data found for your year selection!", immediate. = TRUE)
 
+  ## specific month selection
+  if(!is.null(months)){
+    seabf <- seabf %>% dplyr::filter(month(timestamp) %in% months)
+  }
 ###### this code block can be put anywhere, but should be before trip/set looping starts to avoid repeating query
   ## bring in additional tow info for user from iltssets_mv (gear, tow length), will add to interactive graph later
   if(!use_local){

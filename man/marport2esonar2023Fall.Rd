@@ -15,9 +15,9 @@ marport2esonar2023Fall(
 )
 }
 \arguments{
-\item{extract_data_directory}{is file path where extracted NMEA files with Headline:OPN data are stored.}
+\item{extract_data_directory}{is file path where extracted NMEA files with Headline:OPN data are stored. THESE MUST BE IN THE SAME ORDER IN THE FOLDER AS THEIR CORRESPONDING MARPORT FILES!}
 
-\item{main_data_directory}{is file path to where main unconverted Marport files are stored.}
+\item{main_data_directory}{is file path to where main unconverted Marport files are stored.THESE MUST BE IN THE SAME ORDER IN THE FOLDER AS THEIR CORRESPONDING NMEA FILES!}
 
 \item{output_directory}{is file path to create directory where converted data will be stored.}
 
@@ -26,7 +26,7 @@ marport2esonar2023Fall(
 \item{heading}{chooses whether to use "true" or "magnetic" heading. Default = "magnetic"}
 }
 \description{
-An update from the older function for converting marport data to esonar format.Includes merging of extracted NMEA files for Headline:OPN data.
+An update from the older function for converting marport data to esonar format.Includes merging of extracted NMEA files for Headline:OPN data.MAIN DATA (MARPORT) AND CORRESPONDING EXTRACTED DATA (NMEA) FILES MUST BE STORED IN SEPARATE FOLDERS AND IN THE SAME ORDER TO USE THIS FUNCTION!
 }
 \author{
 Geraint Element
