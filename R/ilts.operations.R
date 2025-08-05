@@ -517,6 +517,7 @@ if(!is.null(select.tows)){
             timestamp = data.frame(seq(min(mergset$timestamp), max(mergset$timestamp), 1))
             names(timestamp) = c("timestamp")
             mergset = merge(mergset, timestamp, "timestamp", all = TRUE)
+            mergset$timestamp <- format(mergset$timestamp, "%Y-%m-%d %H:%M:%S")
             mergset$timestamp = lubridate::ymd_hms(as.character(mergset$timestamp), tz="UTC" )
             #### if using sensor_depths as depth values because no seabf depths, replace here:
             if(all(is.na(mergset$depth))){
